@@ -5,7 +5,7 @@ This project is a modularized schedule optimizer that retrieves course informati
 
 ## Project Structure
 
-```
+
 scheduler_modularized/
 ├── assets/
 │   ├── cleaned_sample_schedule_SP24_6.csv
@@ -27,7 +27,6 @@ scheduler_modularized/
 │   ├── test_database_operations_one.py
 ├── main.py
 └── README.md
-```
 
 ## Installation
 
