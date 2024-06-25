@@ -1,4 +1,3 @@
-```markdown
 # Scheduler Modularized
 
 This project is a modularized schedule optimizer that retrieves course information from a database, generates valid course combinations, calculates scores for each combination, and visualizes the schedules. The project is organized into several modules, each handling different aspects of the process.
@@ -38,7 +37,7 @@ scheduler_modularized/
 
 2. Install the required packages.
    ```sh
-   pip install -r requirements.txt
+   pip install pandas
    ```
 
 3. Ensure you have a working `schedule.db` database in the `assets` folder.  Alternatively, run generate_db.py, to generate the database from a .csv file included in the 'assets' folder.
@@ -85,7 +84,7 @@ This test script:
 - Connects to the `schedule.db` database in the `assets` folder.
 - Retrieves all unique course names.
 - Tests `retrieve_section_info` for each course.
-- Logs any errors or courses with empty dataframes into `test_failures.csv`.
+- Logs any errors or courses with empty dataframes into `database_test_failures.csv`.
 
 ### Example Output
 
@@ -98,7 +97,7 @@ AES-100,Dataframe is unexpectedly empty for course: AES-100
 ## Notes
 
 - Ensure that `schedule.db` is updated with the latest course information.
-- The `test_failures.csv` file will contain details of any test failures for further inspection.
+- The `database_test_failures.csv` file will contain details of any test failures for further inspection.
 
 ## Contributing
 
@@ -107,4 +106,3 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## License
 
 This project is licensed under the MIT License.
-```
