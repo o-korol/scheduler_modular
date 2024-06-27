@@ -34,12 +34,12 @@ def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
                 if day in sections_per_day:
                     sections_per_day[day] += 1
 
-    penalty_score = 0
+    excessive_sections_score = 0
     for day, count in sections_per_day.items():
         if count > max_sections_per_day:
-            penalty_score += (count - max_sections_per_day)
+            excessive_sections_score += (count - max_sections_per_day)
 
-    return penalty_score
+    return excessive_sections_score
 
 @utils.time_function
 def _score_modality(combination: List[Dict[str, Any]]) -> int:
