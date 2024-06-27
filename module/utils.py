@@ -154,13 +154,13 @@ def print_summary(scored_combinations):
         meeting_times = f"{section['STime']} - {section['ETime']}" if section['STime'] and section['ETime'] else ""
         return f"  {section_name} ({meeting_days_str} {meeting_times})"
 
-    def print_combination(combination, option_number, combined_score, days_score, gap_score):
+    def print_combination(combination, option_number, combined_score, days_score, gap_score, modality_score):
         sorted_combination = sort_combination(combination)
-        print(f"Option {option_number}: Combined Score = {combined_score}, Days Score = {days_score}, Gap Score = {gap_score}")
+        print(f"Option {option_number}: Combined Score = {combined_score}, Days Score = {days_score}, Gap Score = {gap_score}, Modality Score = {modality_score}")
         for section in sorted_combination:
             print(format_section(section))
         print()
 
     print("Generated valid schedule combinations:")
-    for i, (combination, combined_score, days_score, gap_score) in enumerate(scored_combinations, start=1):
-        print_combination(combination, i, combined_score, days_score, gap_score)
+    for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
+        print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
