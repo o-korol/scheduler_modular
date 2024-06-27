@@ -12,6 +12,9 @@ scheduler_modularized/
 │   ├── sample_schedule_SP24_6.csv
 │   ├── schedule.db
 │   └── database_test_failures.csv
+├── mockup/
+│   ├── __init__.py
+│   ├── mockup.py
 ├── module/
 │   ├── __init__.py
 │   ├── config.py
@@ -49,6 +52,8 @@ To run the main script, use:
 ```sh
 python main.py
 ```
+
+Course selection and modality preferences can be set in mockup.py.
 
 ## Running Tests
 
