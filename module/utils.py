@@ -2,6 +2,11 @@ from datetime import datetime
 import functools
 import time
 import pandas as pd
+import logging # Testing
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 execution_times = {}
 errors = {}
@@ -27,6 +32,7 @@ def time_function(func):
             if detailed_message not in errors[func_name]:
                 errors[func_name].add(detailed_message)
 
+            logger.error(f"{func_name}: {detailed_message}")
             raise e
         end_time = time.time()
         elapsed_time = end_time - start_time
@@ -37,6 +43,7 @@ def time_function(func):
             execution_times[func_name] = []
         execution_times[func_name].append(elapsed_time)
 
+        logger.debug(f"{func_name} executed in {elapsed_time:.4f} seconds")
         return result
     return wrapper
 
@@ -142,7 +149,7 @@ def sort_combination(combination):
 
 @time_function
 def print_summary(scored_combinations):
-    def format_section(section):
+    def format_section(section): # Format each section to include section name, meeting days, and meeting times, e.g., PSY-103-317 (M 3:05 PM - 4:30 PM)
         section_name = section["Name"]
         meeting_days = section["Mtg_Days"]
         if meeting_days:
@@ -162,5 +169,38 @@ def print_summary(scored_combinations):
         print()
 
     print("Generated valid schedule combinations:")
+
+    if len(scored_combinations) > 100:
+        # Print the best 50 combinations
+        print("Best 50 combinations:")
+        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations[:50], start=1):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+
+        # Print the worst 50 combinations
+        print("Worst 50 combinations:")
+        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+    else:
+        # Print all combinations
+        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+
+    ''' # Option to print all combinations, commented out
     for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
-        print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+         print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+    '''
+
+def print_execution_summary():
+    print("\nExecution Time Summary:")
+    for func_name, times in execution_times.items():
+        total_time = sum(times)
+        avg_time = total_time / len(times)
+        num_loops = len(times)
+        print(f"{func_name}: Total time = {total_time:.4f} seconds, Average time per loop = {avg_time:.4f} seconds, Loops = {num_loops}")
+
+def print_error_summary():
+    print("\nError Summary:")
+    for func_name, error_set in errors.items():
+        print(f"{func_name}: {len(error_set)} unique errors")
+        for error_message in error_set:
+            print(f"  {error_message}")
