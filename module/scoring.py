@@ -15,10 +15,10 @@ DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
 @utils.time_function
 def _score_modality(combination: List[Dict[str, Any]]) -> int:
     """
-    Calculate a score reflecting how well the schedule matches the modality preferences of the student, supplied via config.
+    Score a schedule for its ability to meet student's modality preferences.
 
     Args:
-        combination (List[Dict[str, Any]]): A list of course sections.
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
         int: The modality score.
@@ -39,10 +39,10 @@ def _score_modality(combination: List[Dict[str, Any]]) -> int:
 @utils.time_function
 def _score_days_on_campus(combination: List[Dict[str, Any]]) -> int:
     """
-    Calculate a score that compares the number of days on campus for given combination to the number of days the student prefers to be on campus.
+    Score a schedule for its ability to meet student's preference for number of days on campus.
 
     Args:
-        combination (List[Dict[str, Any]]): A list of course sections.
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
         int: The penalty score for days on campus over the preferred number of days.
@@ -71,7 +71,7 @@ def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, 
     (Helper function of _score_gaps.)
 
     Args:
-        day_sections (List[Dict[str, Any]]): A list of sections for the day.
+        day_sections (List[Dict[str, Any]]): A list of sections for the day that represents the schedule for the day.
         break_start (time): Start time of the mandatory break.
         break_end (time): End time of the mandatory break.
     """
@@ -88,11 +88,11 @@ def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, 
 
 def _score_gaps_per_day(day_sections: List[Dict[str, Any]], max_allowed_gap: int, penalty_per_hour: int) -> int:
     """
-    Calculate the gap score for a single day.
+    Score a day in a schedule for the duration of gaps between classes.
     (Helper function of _score_gaps.)
 
     Args:
-        day_sections (List[Dict[str, Any]]): A list of sections for the day.
+        day_sections (List[Dict[str, Any]]): A list of sections for the day that represents the schedule for the day.
         max_allowed_gap (int): Maximum allowed (penalty-free) gap, in minutes.
         penalty_per_hour (int): Penalty per hour for gaps exceeding the maximum allowed gap.
 
@@ -119,10 +119,10 @@ def _score_gaps_per_day(day_sections: List[Dict[str, Any]], max_allowed_gap: int
 @utils.time_function
 def _score_gaps(combination: List[Dict[str, Any]]) -> int:
     """
-    Calculate the gap score for a given combination.
+    Score a schedule for the duration of gaps between classes.
 
     Args:
-        combination (List[Dict[str, Any]]): A list of course sections.
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
         int: The gap score.
@@ -160,10 +160,10 @@ def _score_gaps(combination: List[Dict[str, Any]]) -> int:
 @utils.time_function
 def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, int]:
     """
-    Calculate the combined score for a combination based on modality, days, and gaps.
+    Score a schedule for a combination of scores, including modality, days, and gaps.
 
     Args:
-        combination (List[Dict[str, Any]]): A list of course sections.
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
         Tuple[int, int, int, int]: The combined score, days score, gap score, and modality score.
@@ -182,10 +182,10 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, i
 @utils.time_function
 def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], int, int, int, int]]:
     """
-    Score multiple combinations and return them sorted by the combined score.
+    Score different schedules.  Return them sorted by the combined score.
 
     Args:
-        combinations (List[List[Dict[str, Any]]]): A list of combinations to score.
+        combinations (List[List[Dict[str, Any]]]): A list of combinations that represents a schedule.
 
     Returns:
         List[Tuple[List[Dict[str, Any]], int, int, int, int]]: A list of scored combinations.
