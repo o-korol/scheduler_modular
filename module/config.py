@@ -1,9 +1,12 @@
+from mockup.mockup import mock_modality_preferences  # Import the mock function
+
 config = {
     "weights": {
         "days": 1,
-        "gaps": 1  # Added weight for gap score
+        "gaps": 1,
+        "modality": 100  # Added weight for modality score
     },
-    "selected_num_days": 3,  # Set desired number of days on campus
+    "preferred_num_days": 3,
     "day_weights": {
         0: 0,
         1: 1,
@@ -17,7 +20,8 @@ config = {
     "gap_weights": {
         "mandatory_break_start": "12:15 PM",
         "mandatory_break_end": "1:30 PM",
-        "max_allowed_gap": 20,  # Maximum allowed penalty-free gap, in minutes
-        "penalty_per_hour": 2  # Set the penalty per hour
-    }
+        "max_allowed_gap": 20,
+        "penalty_per_hour": 2
+    },
+    "modality_preferences": mock_modality_preferences()  # Use mock modality preferences for testing
 }
