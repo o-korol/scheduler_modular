@@ -185,7 +185,7 @@ def print_summary(scored_combinations):
         for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
             print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
 
-    ''' # Option to print all combinations, commented out
+    ''' # Option to print all combinations
     for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
          print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
     '''
