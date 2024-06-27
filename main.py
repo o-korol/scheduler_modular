@@ -5,15 +5,14 @@ import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import sqlite3
-import time
-
-# Updated imports to match the new directory structure
+import time # Keep it, in case we cannot get time_function to work with main and have to revert to recording start time and end time with time.time()
 from module.database_operations import retrieve_section_info
 from module.scheduling_logic import generate_combinations_with_coreqs
 from module.scoring import score_combinations
 from module.plotting import plot_schedules
 from module.config import config
 from module.utils import group_sections, print_summary, time_function, execution_times, errors
+from mockup.mockup import mock_selected_courses, mock_modality_preferences, mock_user_availability # User availability is not patched in yet
 
 @time_function
 def main():
@@ -21,7 +20,12 @@ def main():
         conn = sqlite3.connect('assets/schedule.db')
         cursor = conn.cursor()
 
-        selected_courses = ['BIO-151', 'MAT-161', 'ENG-103', 'PSY-103']
+        # Mock up selected courses (get the from mockups file)
+        selected_courses = mock_selected_courses()
+
+        # Mock modality preferences and update config
+        modality_preferences = mock_modality_preferences()
+        config["modality_preferences"] = modality_preferences  # Update config with modality preferences
 
         section_cache = {}
 
@@ -32,7 +36,7 @@ def main():
 
         combinations = generate_combinations_with_coreqs(cursor, grouped_df, section_cache)
 
-        scored_combinations = score_combinations(combinations, config)
+        scored_combinations = score_combinations(combinations)
 
         print_summary(scored_combinations)
 
