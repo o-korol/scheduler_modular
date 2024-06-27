@@ -12,6 +12,35 @@ from typing import List, Dict, Tuple, Any
 # Constants
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
 
+# Testing
+@utils.time_function
+def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
+    """
+    Score a schedule based on the maximum number of sections per day.
+
+    Args:
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
+
+    Returns:
+        int: The penalty score for exceeding the maximum number of sections per day.
+    """
+    max_sections_per_day = config.get("preferred_max_sections_per_day")
+    sections_per_day = {day: 0 for day in DAYS_OF_WEEK}
+
+    for section in combination:
+        if section["Mtg_Days"]:
+            for day in section["Mtg_Days"].split(','):
+                day = day.strip()
+                if day in sections_per_day:
+                    sections_per_day[day] += 1
+
+    penalty_score = 0
+    for day, count in sections_per_day.items():
+        if count > max_sections_per_day:
+            penalty_score += (count - max_sections_per_day)
+
+    return penalty_score
+
 @utils.time_function
 def _score_modality(combination: List[Dict[str, Any]]) -> int:
     """
@@ -158,43 +187,45 @@ def _score_gaps(combination: List[Dict[str, Any]]) -> int:
     return gap_score
 
 @utils.time_function
-def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, int]:
+def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, int, int]:
     """
-    Score a schedule for a combination of scores, including modality, days, and gaps.
+    Score a schedule for a combination of scores, including modality, days, gaps, and max sections per day.
 
     Args:
         combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
-        Tuple[int, int, int, int]: The combined score, days score, gap score, and modality score.
+        Tuple[int, int, int, int, int]: The combined score, days score, gap score, modality score, and max sections per day score.
     """
     modality_score = _score_modality(combination)
     days_score = _score_days_on_campus(combination)
     gap_score = _score_gaps(combination)
+    max_sections_score = _score_max_sections_per_day(combination)
 
     combined_score = (
         config["weights"]["days"] * days_score +
         config["weights"]["gaps"] * gap_score +
-        config["weights"]["modality"] * modality_score
+        config["weights"]["modality"] * modality_score +
+        config["weights"].get("sections_per_day", 1) * max_sections_score
     )
-    return combined_score, days_score, gap_score, modality_score
+    return combined_score, days_score, gap_score, modality_score, max_sections_score
 
 @utils.time_function
-def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], int, int, int, int]]:
+def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], int, int, int, int, int]]:
     """
-    Score different schedules.  Return them sorted by the combined score.
+    Score different schedules. Return them sorted by the combined score.
 
     Args:
         combinations (List[List[Dict[str, Any]]]): A list of combinations that represents a schedule.
 
     Returns:
-        List[Tuple[List[Dict[str, Any]], int, int, int, int]]: A list of scored combinations.
+        List[Tuple[List[Dict[str, Any]], int, int, int, int, int]]: A list of scored combinations.
     """
     scored_combinations = []
     for combination in combinations:
         try:
-            combo_score, days_score, gap_score, modality_score = _combined_score(combination)
-            scored_combinations.append((combination, combo_score, days_score, gap_score, modality_score))
+            combo_score, days_score, gap_score, modality_score, max_sections_score = _combined_score(combination)
+            scored_combinations.append((combination, combo_score, days_score, gap_score, modality_score, max_sections_score))
         except Exception as e:
             error_message = str(e)
             if 'score_combinations' not in utils.errors:
