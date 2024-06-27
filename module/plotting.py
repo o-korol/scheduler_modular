@@ -6,7 +6,7 @@ from .utils import time_function
 
 
 @time_function
-def plot_schedule(schedule, option_number, combined_score, days_score, gap_score, modality_score):
+def plot_schedule(schedule, option_number, combined_score, days_score, gap_score, modality_score, max_sections_score):
     days = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
     colors = ['lightblue', 'lightcoral', 'lightgreen', 'lightsalmon', 'lightpink', 'lightseagreen', 'skyblue', 'lightgoldenrodyellow', 'lightcyan', 'lightgray']
     course_names = sorted(set(section['Course_Name'] for section in schedule))
@@ -63,7 +63,7 @@ def plot_schedule(schedule, option_number, combined_score, days_score, gap_score
     for hour in range(8, 23):
         ax.axhline(y=hour, color='gray', linestyle='-', zorder=1)
 
-    plt.title(f'Schedule Option {option_number} - Combined Score: {combined_score}, Days Score: {days_score}, Gap Score: {gap_score}, Modality Score: {modality_score}', zorder=10)
+    plt.title(f'Schedule Option {option_number} - Combined Score: {combined_score}, Days Score: {days_score}, Gap Score: {gap_score}, Modality Score: {modality_score}, Max Sections Score = {max_sections_score}', zorder=10)
 
     if no_meeting_times_courses:
         fig.subplots_adjust(bottom=0.2)
@@ -85,7 +85,7 @@ def plot_schedule(schedule, option_number, combined_score, days_score, gap_score
 @time_function
 def plot_schedules(combinations):
     with PdfPages('schedules.pdf') as pdf:
-        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(combinations[:50], start=1):
-            fig = plot_schedule(combination, i, combined_score, days_score, gap_score, modality_score)
+        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(combinations[:50], start=1):
+            fig = plot_schedule(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
             pdf.savefig(fig)
             plt.close(fig)
