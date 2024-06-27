@@ -161,9 +161,10 @@ def print_summary(scored_combinations):
         meeting_times = f"{section['STime']} - {section['ETime']}" if section['STime'] and section['ETime'] else ""
         return f"  {section_name} ({meeting_days_str} {meeting_times})"
 
-    def print_combination(combination, option_number, combined_score, days_score, gap_score, modality_score):
+    def print_combination(combination, option_number, combined_score, days_score, gap_score, modality_score, max_sections_score):
         sorted_combination = sort_combination(combination)
-        print(f"Option {option_number}: Combined Score = {combined_score}, Days Score = {days_score}, Gap Score = {gap_score}, Modality Score = {modality_score}")
+        # Print combination header (option number and scores)
+        print(f"Option {option_number}: Combined Score = {combined_score}, Days Score = {days_score}, Gap Score = {gap_score}, Modality Score = {modality_score}, Max Sections Score = {max_sections_score}")
         for section in sorted_combination:
             print(format_section(section))
         print()
@@ -173,21 +174,22 @@ def print_summary(scored_combinations):
     if len(scored_combinations) > 100:
         # Print the best 50 combinations
         print("Best 50 combinations:")
-        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations[:50], start=1):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations[:50], start=1):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
 
         # Print the worst 50 combinations
         print("Worst 50 combinations:")
-        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
     else:
         # Print all combinations
-        for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations, start=1):
+            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
 
-    ''' # Option to print all combinations
-    for i, (combination, combined_score, days_score, gap_score, modality_score) in enumerate(scored_combinations, start=1):
-         print_combination(combination, i, combined_score, days_score, gap_score, modality_score)
+    '''
+    # Option to print all combinations
+    for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations, start=1):
+         print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
     '''
 
 def print_execution_summary():
