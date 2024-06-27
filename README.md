@@ -28,7 +28,8 @@ scheduler_modularized/
 │   ├── test_database_operations_all.py
 │   ├── test_database_operations_one.py
 ├── main.py
-└── README.md
+├── README.md
+└── schedules.pdf
 ```
 
 ## Installation
@@ -54,6 +55,7 @@ python main.py
 ```
 
 Course selection and modality preferences can be set in mockup.py.
+To see top-ranked schedules, open schedules.pdf.
 
 ## Running Tests
 
