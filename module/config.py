@@ -1,12 +1,13 @@
 from mockup.mockup import mock_modality_preferences
 
 config = {
-    "weights": {
+    "weights": { # Specify relative weights for each factor
         "days": 1,
         "gaps": 1,
-        "modality": 100  # Added weight for modality score
+        "modality": 10,  # Specify weight for modality score
+        "sections_per_day": 100  # Specify weight for max sections per day score
     },
-    "preferred_num_days": 3,
+    "preferred_num_days": 3, # Set preferred number of days per week on campus.  Consider setting default at 3.  User can adjust.
     "day_weights": {
         0: 0,
         1: 1,
@@ -23,5 +24,6 @@ config = {
         "max_allowed_gap": 20,
         "penalty_per_hour": 2
     },
+    "preferred_max_sections_per_day": 3,  # Set preferred max number of sections per day.  Consider setting default at 3.  User can adjust.
     "modality_preferences": mock_modality_preferences()  # Use mock modality preferences for testing
 }
