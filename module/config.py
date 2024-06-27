@@ -1,4 +1,4 @@
-from mockup.mockup import mock_modality_preferences  # Import the mock function
+from mockup.mockup import mock_modality_preferences
 
 config = {
     "weights": {
