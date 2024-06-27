@@ -20,7 +20,7 @@ def main():
         conn = sqlite3.connect('assets/schedule.db')
         cursor = conn.cursor()
 
-        # Mock up selected courses (get selected courses from mockups file)
+        # Mock up selected courses (get selected courses from mockup file)
         selected_courses = mock_selected_courses()
 
         # Mock modality preferences and update config
