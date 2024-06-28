@@ -2,7 +2,8 @@ from datetime import datetime
 import functools
 import time
 import pandas as pd
-import logging # Testing
+import logging
+# from .scoring import combined_score_dict  # Testing # Import the new function # Not needed here if print functions are moved to utils_print to avoid circular imports
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -149,22 +150,17 @@ def sort_combination(combination):
 
 @time_function
 def print_summary(scored_combinations):
-    def format_section(section): # Format each section to include section name, meeting days, and meeting times, e.g., PSY-103-317 (M 3:05 PM - 4:30 PM)
+    def format_section(section):
         section_name = section["Name"]
         meeting_days = section["Mtg_Days"]
-        if meeting_days:
-            meeting_days_str = meeting_days
-        else:
-            modality = section["Method"]
-            meeting_days_str = f"{modality} - No specified meeting times"
-
+        meeting_days_str = meeting_days if meeting_days else f"{section['Method']} - No specified meeting times"
         meeting_times = f"{section['STime']} - {section['ETime']}" if section['STime'] and section['ETime'] else ""
         return f"  {section_name} ({meeting_days_str} {meeting_times})"
 
-    def print_combination(combination, option_number, combined_score, days_score, gap_score, modality_score, max_sections_score):
+    def print_combination(combination, option_number, scores):
         sorted_combination = sort_combination(combination)
-        # Print combination header (option number and scores)
-        print(f"Option {option_number}: Combined Score = {combined_score}, Days Score = {days_score}, Gap Score = {gap_score}, Modality Score = {modality_score}, Max Sections Score = {max_sections_score}")
+        header = ", ".join([f"{key.replace('_', ' ').title()} = {value}" for key, value in scores.items()])
+        print(f"Option {option_number}: {header}")
         for section in sorted_combination:
             print(format_section(section))
         print()
@@ -172,25 +168,16 @@ def print_summary(scored_combinations):
     print("Generated valid schedule combinations:")
 
     if len(scored_combinations) > 100:
-        # Print the best 50 combinations
-        print("Best 50 combinations:")
-        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations[:50], start=1):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
+        print("BEST 50 COMBINATIONS:")
+        for i, (combination, scores) in enumerate(scored_combinations[:50], start=1):
+            print_combination(combination, i, scores)
 
-        # Print the worst 50 combinations
-        print("Worst 50 combinations:")
-        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
+        print("WORST 50 COMBINATIONS:")
+        for i, (combination, scores) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
+            print_combination(combination, i, scores)
     else:
-        # Print all combinations
-        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations, start=1):
-            print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
-
-    '''
-    # Option to print all combinations
-    for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(scored_combinations, start=1):
-         print_combination(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
-    '''
+        for i, (combination, scores) in enumerate(scored_combinations, start=1):
+            print_combination(combination, i, scores)
 
 def print_execution_summary():
     print("\nExecution Time Summary:")
