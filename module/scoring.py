@@ -1,7 +1,6 @@
 """
-When adding new scoring functions, remember to add the new scores to _combined_score and score_combinations functions in this module,
-plus to print_summary function in utils module and plot_schedule in plotting module (plt.title).
-(Consider automating the process by creating a dictionary of scores and their values from _combined_score function and automating title creation in plot_schedules and print_summary.)
+When adding a new scoring function, remember to add the new score to _combined_score and score_combinations functions in this module.
+The header in print_summary and the title in plot_schedule should update automatically.
 """
 
 from . import utils
@@ -186,16 +185,16 @@ def _score_gaps(combination: List[Dict[str, Any]]) -> int:
 
     return gap_score
 
-@utils.time_function
-def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, int, int]:
+def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
     """
     Score a schedule for a combination of scores, including modality, days, gaps, and max sections per day.
+    MODIFY THIS FUNCTION whenever a new score is added.  Add new score to combined_score calculation and return dictionary.
 
     Args:
         combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
-        Tuple[int, int, int, int, int]: The combined score, days score, gap score, modality score, and max sections per day score.
+        Dict[str, int]: A dictionary of the score names and their values.
     """
     modality_score = _score_modality(combination)
     days_score = _score_days_on_campus(combination)
@@ -208,31 +207,33 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Tuple[int, int, int, i
         config["weights"]["modality"] * modality_score +
         config["weights"].get("sections_per_day", 1) * max_sections_score
     )
-    return combined_score, days_score, gap_score, modality_score, max_sections_score
+    return {
+        "combined_score": combined_score,
+        "days_score": days_score,
+        "gap_score": gap_score,
+        "modality_score": modality_score,
+        "max_sections_score": max_sections_score,
+        "made up test score":  8,
+        # Add new score here when expanding the scoring layer
+    }
 
-@utils.time_function
-def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], int, int, int, int, int]]:
-    """
-    Score different schedules. Return them sorted by the combined score.
 
-    Args:
-        combinations (List[List[Dict[str, Any]]]): A list of combinations that represents a schedule.
-
-    Returns:
-        List[Tuple[List[Dict[str, Any]], int, int, int, int, int]]: A list of scored combinations.
-    """
+def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], Dict[str, int]]]:
+    '''
+    Needs description
+    '''
     scored_combinations = []
     for combination in combinations:
         try:
-            combo_score, days_score, gap_score, modality_score, max_sections_score = _combined_score(combination)
-            scored_combinations.append((combination, combo_score, days_score, gap_score, modality_score, max_sections_score))
+            scores = _combined_score(combination)
+            scored_combinations.append((combination, scores))
         except Exception as e:
             error_message = str(e)
-            if 'score_combinations' not in utils.errors:
-                utils.errors['score_combinations'] = set()
-            if error_message not in utils.errors['score_combinations']:
-                utils.errors['score_combinations'].add(error_message)
-            utils.log_error(f"Error scoring combination: {e}")
+            if 'score_combinations' not in errors:
+                errors['score_combinations'] = set()
+            if error_message not in errors['score_combinations']:
+                errors['score_combinations'].add(error_message)
+            logger.error(f"Error scoring combination: {e}")
 
-    scored_combinations.sort(key=lambda x: x[1])  # Sort by the combined score
+    scored_combinations.sort(key=lambda x: x[1]["combined_score"])  # Sort by the combined score
     return scored_combinations
