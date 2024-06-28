@@ -11,11 +11,11 @@ from module.scheduling_logic import generate_combinations_with_coreqs
 from module.scoring import score_combinations
 from module.plotting import plot_schedules
 from module.config import config
-from module.utils import group_sections, print_summary, print_execution_summary, print_error_summary, time_function, logger
-from mockup.mockup import mock_selected_courses, mock_modality_preferences, mock_user_availability
+from module.utils import group_sections, logger, print_summary, print_execution_summary, print_error_summary
+from mockup.mockup import mock_selected_courses, mock_modality_preferences, mock_user_availability # Mock user availability is not patched in yet
 
 def main():
-    start_time = time.time()  # Start timing (used to time the main) (decorator function does not seem to play nice with main)
+    start_time = time.time()  # Start timing (used to time the main because time decorator function does not seem to work with main)
 
     try:
         conn = sqlite3.connect('assets/schedule.db')
