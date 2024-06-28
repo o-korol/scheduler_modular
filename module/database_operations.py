@@ -8,7 +8,6 @@ def retrieve_section_info(cursor, selected_courses, section_cache):
     for course in selected_courses:
         try:
             if course in section_cache:
-                print(f"\nUsing cached data for course: {course}")
                 data.extend(section_cache[course])
             else:
                 print(f"\nProcessing course: {course}")
@@ -23,7 +22,6 @@ def retrieve_section_info(cursor, selected_courses, section_cache):
                 section_cache[course] = sections  # Cache the retrieved sections
                 data.extend(sections)
         except Exception as e:
-            print(f"Error processing course {course}: {e}")
             utils.errors['retrieve_section_info'].add(f"{str(e)} in course {course}")
 
     if data:
