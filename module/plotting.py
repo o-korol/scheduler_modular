@@ -4,15 +4,14 @@ from matplotlib.backends.backend_pdf import PdfPages
 from datetime import datetime
 from .utils import time_function
 
-
 @time_function
-def plot_schedule(schedule, option_number, combined_score, days_score, gap_score, modality_score, max_sections_score):
+def plot_schedule(schedule, option_number, scores):
     days = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
     colors = ['lightblue', 'lightcoral', 'lightgreen', 'lightsalmon', 'lightpink', 'lightseagreen', 'skyblue', 'lightgoldenrodyellow', 'lightcyan', 'lightgray']
     course_names = sorted(set(section['Course_Name'] for section in schedule))
     color_map = {course: colors[i % len(colors)] for i, course in enumerate(course_names)}
 
-    fig, ax = plt.subplots(figsize=(12, 8))
+    fig, ax = plt.subplots(figsize=(14, 10))  # Adjust figure size if needed
     ax.set_xlim(-0.5, 6.5)
     ax.set_ylim(23, 7)
     ax.set_xticks(range(len(days)))
@@ -22,7 +21,7 @@ def plot_schedule(schedule, option_number, combined_score, days_score, gap_score
 
     no_meeting_times_courses = []
 
-    def split_text(text, max_width):
+    def split_text(text, max_width): # Split longer text to fit insde the course patch on the plot
         words = text.split(', ')
         lines = []
         current_line = words[0]
@@ -63,7 +62,9 @@ def plot_schedule(schedule, option_number, combined_score, days_score, gap_score
     for hour in range(8, 23):
         ax.axhline(y=hour, color='gray', linestyle='-', zorder=1)
 
-    plt.title(f'Schedule Option {option_number} - Combined Score: {combined_score}, Days Score: {days_score}, Gap Score: {gap_score}, Modality Score: {modality_score}, Max Sections Score = {max_sections_score}', zorder=10)
+    # Generate the title dynamically from scores dictionary, passed to this function as 'scores'
+    title_text = f'Schedule Option {option_number}\n' + ', '.join([f"{key.replace('_', ' ').title()}: {value}" for key, value in scores.items()])
+    plt.title(title_text, zorder=10) # Higher z-order sends the text to the front
 
     if no_meeting_times_courses:
         fig.subplots_adjust(bottom=0.2)
@@ -85,7 +86,7 @@ def plot_schedule(schedule, option_number, combined_score, days_score, gap_score
 @time_function
 def plot_schedules(combinations):
     with PdfPages('schedules.pdf') as pdf:
-        for i, (combination, combined_score, days_score, gap_score, modality_score, max_sections_score) in enumerate(combinations[:50], start=1):
-            fig = plot_schedule(combination, i, combined_score, days_score, gap_score, modality_score, max_sections_score)
+        for i, (combination, scores) in enumerate(combinations[:50], start=1):
+            fig = plot_schedule(combination, i, scores)
             pdf.savefig(fig)
             plt.close(fig)
