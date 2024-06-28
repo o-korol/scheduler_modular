@@ -3,10 +3,10 @@ When adding a new scoring function, remember to add the new score to _combined_s
 The header in print_summary and the title in plot_schedule should update automatically.
 """
 
-from . import utils
 from datetime import datetime, time
-from .config import config
 from typing import List, Dict, Tuple, Any
+from . import utils
+from .config import config
 
 # Constants
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
@@ -85,9 +85,10 @@ def _score_days_on_campus(combination: List[Dict[str, Any]]) -> int:
                 days_on_campus.update(meeting_days.split(', '))
 
     num_days = len(days_on_campus)
+    excess_days = num_days - preferred_num_days
 
-    if num_days > preferred_num_days:
-        day_score = day_weights.get(num_days, max(day_weights.values()))
+    if excess_days > 0:
+        day_score = day_weights.get(excess_days, max(day_weights.values())) # Calculate penalty for excess days
     else:
         day_score = 0
 
