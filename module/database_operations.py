@@ -1,5 +1,5 @@
 import pandas as pd
-from . import utils  # Import the entire utils module
+from . import utils
 
 @utils.time_function
 def retrieve_section_info(cursor, selected_courses, section_cache):
