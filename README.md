@@ -1,4 +1,4 @@
-# Scheduler Modularized
+# Scheduler Modular
 
 This project is a modularized schedule optimizer that retrieves course information from a database, generates valid course combinations, calculates scores for each combination, and visualizes the schedules. The project is organized into several modules, each handling different aspects of the process.
 
