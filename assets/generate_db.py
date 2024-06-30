@@ -35,6 +35,10 @@ def adjust_data_types(df):
     for col in string_columns:
         df[col] = df[col].astype(str).str.strip()
 
+    # Additional cleanup for the 'Room' column.  Without it, Room column retains 'nan', which can interfere with building information extraction.
+    df['Room'] = df['Room'].replace('nan', None)
+    df['Room'] = df['Room'].replace('', None)
+
     datetime_columns = ['Date_Run', 'Status_Date', 'SDate', 'EDate']
     for col in datetime_columns:
         df[col] = pd.to_datetime(df[col])
@@ -55,7 +59,7 @@ def handle_multiple_entries(df):
 
 def extract_course_name(name):
     '''Extract course identifier (e.g., ENG-103) from section identifier (e.g., ENG-103-101)'''
-    parts = name.split('-')
+    parts = name.split('-') # Could have used rsplit
     if len(parts) >= 2:
         return '-'.join(parts[:2])
     return name
@@ -106,6 +110,22 @@ def extract_meets_with_sections(comments):
     sections = re.split(r'\s*,\s*|\s+and\s+', meets_with_text)
     return ', '.join(section.strip() for section in sections) if sections else None  # Ensure empty strings are converted to None
 
+def extract_building_info(df):
+    '''Extract the building identifier from Room info '''
+    def extract_building_from_room(room):
+        if pd.isna(room) or room is None or len(room.strip()) == 0:
+            return None
+        parts = room.strip().split(' ')
+        if parts:
+            building = parts[0]
+            if len(building) > 0:
+                return building[0]
+        return None
+
+    df['Building'] = df['Room'].apply(extract_building_from_room)
+    logging.info('Extracted building information from Room column')
+    return df
+
 def identify_cohorted_sections(df):
     df['Cohorted_section'] = df['Short_Title'].str.startswith('CH: ').astype(bool)
     logging.info('Identified cohorted sections')
@@ -122,7 +142,7 @@ def process_comments(df):
     return df
 
 def calculate_fraction_full(df):
-    df['Fraction_Full'] = ((df['Cap'] - df['Avail_Seats']) / df['Cap'])
+    df['Fraction_Full'] = ((df['Cap'] - df['Avail_Seats']) / df['Cap']) # Could have used Students instead of the difference between capacity and available seats
     logging.info('Calculated Fraction_Full')
     return df
 
@@ -167,6 +187,7 @@ def import_to_sqlite(df, db_name):
         sys.exit(1)
 
 def main():
+    logging.basicConfig(level=logging.DEBUG)  # Set logging level to DEBUG for detailed output # Testing
     file_name = 'sample_schedule_SP24_6.csv' # Specify the name of the .csv master schedule file
     db_name = 'schedule.db'
 
@@ -174,6 +195,7 @@ def main():
     df = clean_column_names(df)
     df = adjust_data_types(df)
     df = handle_multiple_entries(df)
+    df = extract_building_info(df)
     df = process_comments(df)
     df = calculate_fraction_full(df)
     df = standardize_missing_values(df) # First, standardize missing values
