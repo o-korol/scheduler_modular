@@ -12,7 +12,7 @@ def retrieve_section_info(cursor, selected_courses, section_cache):
             else:
                 print(f"\nProcessing course: {course}")
                 cursor.execute("""
-                    SELECT Course_Name, Name, Avail_Seats, Printed_Comments, Coreq_Course, Coreq_Sections, STime, ETime, SDate, EDate, Mtg_Days, Method, Credits, Restricted_section, Cohorted_section, Fraction_Full, Faculty_First, Faculty_Last, Faculty_Full_Name
+                    SELECT Course_Name, Name, Avail_Seats, Printed_Comments, Coreq_Course, Coreq_Sections, STime, ETime, SDate, EDate, Mtg_Days, Method, Credits, Restricted_section, Cohorted_section, Fraction_Full, Faculty_First, Faculty_Last, Faculty_Full_Name, Number_Weeks, Location, Room
                     FROM schedule
                     WHERE Course_Name = ? AND Status = 'A' AND Avail_Seats > 0
                 """, (course,))
