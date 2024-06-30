@@ -2,7 +2,7 @@ import unittest
 import sqlite3
 import os
 import csv
-from module.database_operations import retrieve_section_info
+from module.database_operations import retrieve_section_info # If it has issues with this import, check test_database_operations_one for how to add path
 
 class TestDatabaseOperations(unittest.TestCase):
     failures = []  # Declare failures as a class attribute
