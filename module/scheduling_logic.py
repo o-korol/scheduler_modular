@@ -81,7 +81,7 @@ def generate_combinations_with_coreqs(cursor: Any, df: Any, section_cache: Dict[
                             utils.errors['add_coreqs_to_combination'] = set()
                         if detailed_message not in utils.errors['add_coreqs_to_combination']:
                             utils.errors['add_coreqs_to_combination'].add(detailed_message)
-                        print(f"Error processing corequisite {coreq}: {e}")
+                        # print(f"Error processing corequisite {coreq}: {e}") # Commented it out because otherwise this line prints repeatedly
                         continue  # Skip this coreq and continue with others
 
             if not new_provisional_combinations and coreqs:  # If no valid coreq was found for this section
