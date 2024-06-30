@@ -1,6 +1,12 @@
 import unittest
 import sqlite3
+# import os # Testing
+
+# Testing adding the path
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from module.database_operations import retrieve_section_info
 
 class TestDatabaseOperations(unittest.TestCase):
