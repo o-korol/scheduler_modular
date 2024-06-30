@@ -25,6 +25,7 @@ scheduler_modularized/
 │   └── utils.py
 ├── tests/
 │   ├── __init__.py
+│   ├── test_avg_time.py
 │   ├── test_database_operations_all.py
 │   ├── test_database_operations_one.py
 ├── main.py
