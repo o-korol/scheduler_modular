@@ -1,7 +1,12 @@
 import unittest
 import sqlite3
-import os
 import csv
+
+# Testing adding the path
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from module.database_operations import retrieve_section_info # If it has issues with this import, check test_database_operations_one for how to add path
 
 class TestDatabaseOperations(unittest.TestCase):
@@ -38,7 +43,7 @@ class TestDatabaseOperations(unittest.TestCase):
                     expected_columns = ['Course_Name', 'Name', 'Avail_Seats', 'Printed_Comments', 'Coreq_Course',
                                         'Coreq_Sections', 'STime', 'ETime', 'SDate', 'EDate', 'Mtg_Days', 'Method',
                                         'Credits', 'Restricted_section', 'Cohorted_section', 'Fraction_Full',
-                                        'Faculty_First', 'Faculty_Last', 'Faculty_Full_Name']
+                                        'Faculty_First', 'Faculty_Last', 'Faculty_Full_Name', 'Number_Weeks', 'Location', 'Room', 'Building']
                     self.assertEqual(section_columns, expected_columns, f"Failed for course: {course}")
                     # Check that the correct number of rows are returned
                     self.assertGreater(len(df), 0, f"Failed for course: {course}")
