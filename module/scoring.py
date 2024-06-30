@@ -2,7 +2,6 @@
 When adding a new scoring function, remember to add the new score to _combined_score and score_combinations functions in this module.
 The header in print_summary and the title in plot_schedule should update automatically.
 """
-# Testing consistency scoring:  commenting
 from datetime import datetime, time
 from typing import List, Dict, Tuple, Any
 from . import utils
@@ -12,7 +11,6 @@ from .config import config
 # Constants
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
 
-# Testing
 @utils.time_function
 def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
     """
