@@ -77,14 +77,14 @@ def group_sections(df):
     final_df = pd.concat([grouped_df, coreq_df], ignore_index=True)
     return final_df
 
+def parse_time(time_str):
+    return datetime.strptime(time_str, '%I:%M %p').time() if time_str else None
+
+def parse_date(date_str):
+    return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S') if date_str else None
+
 @time_function
 def has_time_conflict(sections, new_section=None):
-    def parse_time(time_str):
-        return datetime.strptime(time_str, '%I:%M %p').time() if time_str else None
-
-    def parse_date(date_str):
-        return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S') if date_str else None
-
     for section in sections:
         if 'parsed_start_time' not in section:
             section['parsed_start_time'] = parse_time(section['STime'])
