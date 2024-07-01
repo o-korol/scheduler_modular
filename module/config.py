@@ -8,7 +8,7 @@ config = {
         "sections_per_day": 1,
         "consistency_start_time": 0.5,  # Weight for start time consistency. Consider setting it lower than other weights; otherwise, consistency is effectively counted twice.
         "consistency_end_time": 0.5,  # Weight for end time consistency
-        "availability": 1  # Weight for availability score
+        "availability": 1  # Keep this socre high if availability is NOT flexible
     },
     "preferred_num_days": 3, # Preferred number of days on campus
     "penalty_per_excess_day": 1,  # Penalty for each excess day on campus
