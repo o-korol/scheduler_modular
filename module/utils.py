@@ -49,8 +49,8 @@ def time_function(func):
     return wrapper
 
 @time_function
-"""Groups sections of the same course if they meet at the same time."""
 def group_sections(df):
+    """Groups sections of the same course if they meet at the same time."""
     groups = {} # Initialize a dictionary for the groups of sections
     # Create two separate dataframes, one containing sections with coreqs and one, withthou
     coreq_df = df[pd.notna(df['Coreq_Sections'])]
