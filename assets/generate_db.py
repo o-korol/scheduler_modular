@@ -126,6 +126,32 @@ def extract_building_info(df):
     logging.info('Extracted building information from Room column')
     return df
 
+def classify_duration(df):
+    '''Classify section duration as full semester, 1st half, 2nd half, or partial based on their start and end dates'''
+    # Identify semester dates
+    semester_start = df['SDate'].min()
+    semester_end = df['EDate'].max()
+    midpoint = semester_start + (semester_end - semester_start) / 2
+    first_half_end = midpoint - pd.Timedelta(days=1) # 1st half ends 1 day before the midpoint
+    second_half_start = midpoint + pd.Timedelta(days=1) # 2nd half starts 1 day after the midpoint
+
+    def classify_section(row):
+        start_date = row['SDate'] # Get section start date
+        end_date = row['EDate'] # Get section end date
+
+        if start_date == semester_start and end_date == semester_end: # Compare section's start and end dates to semester's dates
+            return 'full semester'
+        elif abs(end_date - first_half_end).days <= 1:
+            return '1st half'
+        elif abs(start_date - second_half_start).days <= 1:
+            return '2nd half'
+        else:
+            return 'partial'
+
+    df['Duration'] = df.apply(classify_section, axis=1)
+    logging.info('Classified sections based on start and end dates')
+    return df
+
 def identify_cohorted_sections(df):
     df['Cohorted_section'] = df['Short_Title'].str.startswith('CH: ').astype(bool)
     logging.info('Identified cohorted sections')
@@ -187,7 +213,7 @@ def import_to_sqlite(df, db_name):
         sys.exit(1)
 
 def main():
-    logging.basicConfig(level=logging.DEBUG)  # Set logging level to DEBUG for detailed output # Testing
+    logging.basicConfig(level=logging.DEBUG)  # Set logging level to DEBUG for detailed output
     file_name = 'sample_schedule_SP24_6.csv' # Specify the name of the .csv master schedule file
     db_name = 'schedule.db'
 
@@ -196,10 +222,11 @@ def main():
     df = adjust_data_types(df)
     df = handle_multiple_entries(df)
     df = extract_building_info(df)
+    df = classify_duration(df)  # Classify sections as full-semester, 1st half, 2nd half, or partial # Testing
     df = process_comments(df)
     df = calculate_fraction_full(df)
     df = standardize_missing_values(df) # First, standardize missing values
-    df = combine_instructor_names(df) # Second, combine faculty first and last names (otherwise, NaN is not handled correctly)
+    df = combine_instructor_names(df) # Second, combine faculty first and last names (otherwise, NaN is not handled correctly) # Alternatively, clean up names columns to convert 'nan' to None, as was done with Room
 
     # Convert any remaining empty strings to None (this is insurance)
     df.replace('', None, inplace=True)
