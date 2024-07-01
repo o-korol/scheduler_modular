@@ -218,7 +218,6 @@ def _average_time(times: List[time]) -> time:
     avg_minute = avg_minutes % 60
     return time(avg_hour, avg_minute)
 
-# Testing
 def _extract_time_bounds(combination: List[Dict[str, Any]]) -> Dict[str, Tuple[time, time]]:
     """
     Extract the earliest section start time and latest section end time for each day.
@@ -244,7 +243,6 @@ def _extract_time_bounds(combination: List[Dict[str, Any]]) -> Dict[str, Tuple[t
                     time_bounds_by_day[day] = (new_earliest, new_latest)
     return {day: bounds for day, bounds in time_bounds_by_day.items() if bounds != (time.max, time.min)}
 
-#Testing:  refactored with extract_time_bounds:  seems to work so far
 @utils.time_function
 def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
     """
@@ -287,7 +285,6 @@ def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
 
     return {"start_time_consistency_score": start_time_consistency_score, "end_time_consistency_score": end_time_consistency_score}
 
-# Testing
 @utils.time_function
 def _score_availability(combination: List[Dict[str, Any]], availability: Dict[str, List[str]], config: Dict[str, Any]) -> int:
     """
