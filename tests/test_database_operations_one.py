@@ -29,7 +29,7 @@ class TestDatabaseOperations(unittest.TestCase):
         expected_columns = ['Course_Name', 'Name', 'Avail_Seats', 'Printed_Comments', 'Coreq_Course',
                             'Coreq_Sections', 'STime', 'ETime', 'SDate', 'EDate', 'Mtg_Days', 'Method',
                             'Credits', 'Restricted_section', 'Cohorted_section', 'Fraction_Full',
-                            'Faculty_First', 'Faculty_Last', 'Faculty_Full_Name', 'Number_Weeks', 'Location', 'Room', 'Building']
+                            'Faculty_First', 'Faculty_Last', 'Faculty_Full_Name', 'Number_Weeks', 'Location', 'Room', 'Building', 'Duration']
 
         self.assertEqual(section_columns, expected_columns)
         # Check that the correct number of rows are returned
