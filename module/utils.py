@@ -3,6 +3,7 @@ import functools
 import time
 import pandas as pd
 import logging
+from typing import List, Dict, Tuple, Any
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -48,32 +49,32 @@ def time_function(func):
     return wrapper
 
 @time_function
-def parse_time(time_str):
-    return datetime.strptime(time_str, '%I:%M %p').time()
-
-@time_function
+"""Groups sections of the same course if they meet at the same time."""
 def group_sections(df):
-    groups = {}
-    coreq_df = df[pd.notna(df['Coreq_Sections']) | pd.notna(df['Coreq_Course'])]
-    non_coreq_df = df[pd.isna(df['Coreq_Sections']) & pd.isna(df['Coreq_Course'])]
+    groups = {} # Initialize a dictionary for the groups of sections
+    # Create two separate dataframes, one containing sections with coreqs and one, withthou
+    coreq_df = df[pd.notna(df['Coreq_Sections'])]
+    non_coreq_df = df[pd.isna(df['Coreq_Sections'])]
 
-    for _, row in non_coreq_df.iterrows():
-        key = (row['Course_Name'], row['STime'], row['ETime'], row['Mtg_Days'])
-        if key not in groups:
-            groups[key] = []
-        groups[key].append(row['Name'])
+    # Group sections of the same course meeting at the same time & same semester duration (e.g., full semester vs half)
+    # This grouping is applied ONLY to courses that do NOT have corequisites, since different sections of a course with coreqs can have different coreq sections
+    for _, row in non_coreq_df.iterrows(): # Iterate over the rows of the dataframe (_, allows to ignore index of the row)
+        # Create a tuple key consisting of values of the current row, to uniquely identify a group
+        key = (row['Course_Name'], row['STime'], row['ETime'], row['Mtg_Days'], row['Duration'])
+        if key not in groups: # If this key tuple has not been seen yet
+            groups[key] = [] # Initialize a list for a new group
+        groups[key].append(row['Name']) # Add the section name to the group
 
     grouped_df = []
     for group, names in groups.items():
-        course_name, s_time, e_time, mtg_days = group
-        group_name = ', '.join(names)
-        example_row = non_coreq_df[non_coreq_df['Name'] == names[0]].iloc[0].copy()
-        example_row['Name'] = group_name
-        grouped_df.append(example_row)
+        group_name = ', '.join(names) # Combine section names into a single string
+        example_row = non_coreq_df[non_coreq_df['Name'] == names[0]].iloc[0].copy() # Get a representative row from the group
+        example_row['Name'] = group_name # Update the 'Name' field with the combined group name
+        grouped_df.append(example_row) # Add the updated row to the grouped dataframe
 
-    grouped_df = pd.DataFrame(grouped_df)
+    grouped_df = pd.DataFrame(grouped_df) # Convert the list of grouped rows to a dataframe
 
-    final_df = pd.concat([grouped_df, coreq_df], ignore_index=True)
+    final_df = pd.concat([grouped_df, coreq_df], ignore_index=True) # Concatenate grouped dataframe and corequisite dataframe
     return final_df
 
 def parse_time(time_str):
@@ -81,6 +82,19 @@ def parse_time(time_str):
 
 def parse_date(date_str):
     return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S') if date_str else None
+
+def parse_time_range(time_range: str) -> Tuple[time, time]: # Testing
+    """Parse a time range string into a tuple of time objects."""
+    start_str, end_str = time_range.split('-')
+    start_time = datetime.strptime(start_str.strip(), "%I:%M %p").time()
+    end_time = datetime.strptime(end_str.strip(), "%I:%M %p").time()
+    return start_time, end_time
+
+def time_difference_in_minutes(t1: time, t2: time) -> int: # Testing
+    """Calculate the difference between two times in minutes."""
+    datetime1 = datetime.combine(datetime.min, t1)
+    datetime2 = datetime.combine(datetime.min, t2)
+    return int((datetime1 - datetime2).total_seconds() // 60)
 
 @time_function
 def has_time_conflict(sections, new_section=None):
