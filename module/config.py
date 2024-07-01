@@ -4,11 +4,11 @@ config = {
     "weights": {
         "days": 1,
         "gaps": 1,
-        "modality": 10, # Keep the score high if modality is important
+        "modality": 10, # Keep the weight high if modality is important
         "sections_per_day": 1,
         "consistency_start_time": 0.5,  # Weight for start time consistency. Consider setting it lower than other weights; otherwise, consistency is effectively counted twice.
         "consistency_end_time": 0.5,  # Weight for end time consistency
-        "availability": 1  # Keep this socre high if availability is NOT flexible
+        "availability": 1  # Keep this weight high if availability is NOT flexible
     },
     "preferred_num_days": 3, # Preferred number of days on campus
     "penalty_per_excess_day": 1,  # Penalty for each excess day on campus
