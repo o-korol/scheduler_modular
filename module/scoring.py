@@ -128,7 +128,6 @@ def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, 
             "Mtg_Days": "Mandatory"
         })
 
-# Do we want to pass penalty rate to this function or should we just pull it up from config inside this function?
 def _score_gaps_per_day(day_sections: List[Dict[str, Any]], max_allowed_gap: int, penalty_per_gap_hour: int) -> int:
     """
     Score a day in a schedule for the duration of gaps between classes.
