@@ -152,14 +152,14 @@ def sort_combination(combination):
 
     def sort_key(section):
         if not section["Mtg_Days"]:
-            return (7, section["Name"])
+            return (7, section["Name"])  # Sort sections with no meeting days to the end
 
-        first_day = section["Mtg_Days"].split(', ')[0]
-        day_number = day_to_number.get(first_day, 8)
-        start_time = datetime.strptime(section["STime"], '%I:%M %p').time() if section["STime"] else datetime.strptime('12:00 AM', '%I:%M %p').time()
-        return (day_number, start_time)
+        first_day = section["Mtg_Days"].split(', ')[0]  # Get the first meeting day # Use _extract_meeting days function, but this may involve moving it from scoring module to utils
+        day_number = day_to_number.get(first_day, 8)  # Map the day to its corresponding number, default to 8 if not found
+        start_time = parse_time(section["STime"]) if section["STime"] else parse_time('12:00 AM')  # Parse the start time, default to '12:00 AM' if missing
+        return (day_number, start_time)  # Return a tuple (day_number, start_time) for sorting
 
-    return sorted(combination, key=sort_key)
+    return sorted(combination, key=sort_key)  # Sort the combination using the sort_key
 
 @time_function
 def print_summary(scored_combinations):
