@@ -3,7 +3,8 @@ import os
 import time
 
 # Add the current directory to sys.path for module resolution
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Testing:  when this line is excluded, the script still runs fine, but that may depend on PYTHONPATH
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 import sqlite3
 from module.database_operations import retrieve_section_info
@@ -27,6 +28,10 @@ def main():
         # Mock modality preferences and update config
         modality_preferences = mock_modality_preferences()
         config["modality_preferences"] = modality_preferences  # Update config with modality preferences
+
+        # Mock user availability and update config # Testing
+        user_availability = mock_user_availability()
+        config["user_availability"] = user_availability  # Update config with user availability
 
         section_cache = {}
 
