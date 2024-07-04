@@ -109,7 +109,7 @@ The test contains mock configuration.  If mock config values are changed, the te
 @pytest.fixture
 def mock_config_max_sections():
     return {
-        "preferred_max_sections_per_day": 3,
+        "preferred_max_sections_per_day": 3, # Change values with caution
         "penalty_per_excess_section": 1
     }
 
@@ -168,7 +168,7 @@ def test_score_max_sections_per_day_multiple_days(mock_config_max_sections):
 @pytest.fixture
 def mock_config_days_on_campus():
     return {
-        "preferred_num_days": 3,
+        "preferred_num_days": 3, # Change values with caution
         "penalty_per_excess_day": 1
     }
 
@@ -218,7 +218,7 @@ The test contains mock configuration.  If mock config values are changed, the te
 @pytest.fixture
 def mock_config_mandatory_break():
     return {
-        "mandatory_break_start": time(12, 15),
+        "mandatory_break_start": time(12, 15), # Change values with caution
         "mandatory_break_end": time(13, 15)
     }
 
@@ -263,8 +263,8 @@ The test contains mock configuration.  If mock config values are changed, the te
 @pytest.fixture
 def mock_config_gap_weights():
     return {
-        "max_allowed_gap": 20,  # In minutes
-        "penalty_per_gap_hour": 2  # Add 2 penalty points for every 1 hour gap
+        "max_allowed_gap": 20, # Change values with caution
+        "penalty_per_gap_hour": 2
     }
 
 def test_score_gaps_per_day_no_gaps(mock_config_gap_weights):
@@ -322,10 +322,10 @@ The test contains mock configuration.  If mock config values are changed, the te
 @pytest.fixture
 def mock_config_gap_weights():
     return {
-        "mandatory_break_start": "12:15 PM",
+        "mandatory_break_start": "12:15 PM", # Change values with caution
         "mandatory_break_end": "1:30 PM",
-        "max_allowed_gap": 20,  # In minutes
-        "penalty_per_gap_hour": 2  # Make sure this matches the main config file
+        "max_allowed_gap": 20,
+        "penalty_per_gap_hour": 2
     }
 
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
@@ -519,7 +519,7 @@ The test contains mock configuration.  If mock config values are changed, the te
 @pytest.fixture
 def mock_config_consistency():
     return {
-        "consistency_penalty_weight": 1  # Set the penalty weight for consistency scoring
+        "consistency_penalty_weight": 1  # Change values with caution
     }
 
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
@@ -610,8 +610,8 @@ The test contains mock configuration and mock data.  If mock values are changed,
 def mock_config_availability():
     return {
         "availability": {
-            "time_out_of_bounds": 60,  # in minutes
-            "penalty_per_hour": 1  # penalty per hour
+            "time_out_of_bounds": 60, # Change values with caution
+            "penalty_per_hour": 1
         }
     }
 
