@@ -278,9 +278,7 @@ def test_score_gaps_per_day_no_gaps(mock_config_gap_weights):
         {"Name": "Class 1", "STime": time(8, 0), "ETime": time(9, 0)},
         {"Name": "Class 2", "STime": time(9, 0), "ETime": time(10, 0)},
     ]
-    max_allowed_gap = config["max_allowed_gap"]
-    penalty_per_gap_hour = config["penalty_per_gap_hour"]
-    score = _score_gaps_per_day(day_sections, max_allowed_gap, penalty_per_gap_hour)
+    score = _score_gaps_per_day(day_sections)
     assert score == 0, "Score should be 0 when there are no gaps between sections"
 
 def test_score_gaps_per_day_within_allowed_gap(mock_config_gap_weights):
@@ -290,9 +288,7 @@ def test_score_gaps_per_day_within_allowed_gap(mock_config_gap_weights):
         {"Name": "Class 1", "STime": time(8, 0), "ETime": time(9, 0)},
         {"Name": "Class 2", "STime": time(9, 15), "ETime": time(10, 15)},
     ]
-    max_allowed_gap = config["max_allowed_gap"]
-    penalty_per_gap_hour = config["penalty_per_gap_hour"]
-    score = _score_gaps_per_day(day_sections, max_allowed_gap, penalty_per_gap_hour)
+    score = _score_gaps_per_day(day_sections)
     assert score == 0, "Score should be 0 when gaps are within the allowed limit"
 
 def test_score_gaps_per_day_exceeding_allowed_gap(mock_config_gap_weights):
@@ -302,9 +298,7 @@ def test_score_gaps_per_day_exceeding_allowed_gap(mock_config_gap_weights):
         {"Name": "Class 1", "STime": time(8, 0), "ETime": time(9, 0)},
         {"Name": "Class 2", "STime": time(10, 0), "ETime": time(11, 0)},
     ]
-    max_allowed_gap = config["max_allowed_gap"]
-    penalty_per_gap_hour = config["penalty_per_gap_hour"]
-    score = _score_gaps_per_day(day_sections, max_allowed_gap, penalty_per_gap_hour)
+    score = _score_gaps_per_day(day_sections)
     assert score == 2, "Score should be 2 when gaps exceed the allowed limit by 1 hour"
 
 def test_score_gaps_per_day_multiple_gaps(mock_config_gap_weights):
@@ -315,9 +309,7 @@ def test_score_gaps_per_day_multiple_gaps(mock_config_gap_weights):
         {"Name": "Class 2", "STime": time(10, 0), "ETime": time(11, 0)},
         {"Name": "Class 3", "STime": time(12, 0), "ETime": time(13, 0)},
     ]
-    max_allowed_gap = config["max_allowed_gap"]
-    penalty_per_gap_hour = config["penalty_per_gap_hour"]
-    score = _score_gaps_per_day(day_sections, max_allowed_gap, penalty_per_gap_hour)
+    score = _score_gaps_per_day(day_sections)
     assert score == 4, "Score should be 4 when there are two gaps exceeding the allowed limit by 1 hour each"
 
 
@@ -713,8 +705,9 @@ def test_score_availability_no_availability(mock_config_availability, mock_avail
     config.update(mock_config_availability)
     combination = [
         {"Name": "Class 1", "STime": "10:00 AM", "ETime": "12:00 PM", "Mtg_Days": "SU"},
+        {"Name": "Class 2", "STime": "1:00 PM", "ETime": "2:00 PM", "Mtg_Days": "SU"} # Testing
     ]
-    expected_score = 2.0  # Entire duration is out of bounds (2 hours), 1 penalty per hour
+    expected_score = 4.0  # Entire duration is out of bounds (4 hours), 1 penalty per hour
     score = _score_availability(combination, mock_availability)
     assert score == expected_score, f"Score should be {expected_score} when a class meets on SU with no availability"
 
