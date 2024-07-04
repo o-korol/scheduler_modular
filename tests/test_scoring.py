@@ -1,6 +1,10 @@
 import pytest
 from datetime import datetime, time
-from module.scoring import _score_modality, _extract_meeting_days, _score_max_sections_per_day, _score_days_on_campus, _add_mandatory_break, _score_gaps_per_day, _score_gaps, _average_time, _extract_time_bounds, _score_consistency, _score_availability, _combined_score, score_combinations
+from module.scoring import (_score_modality, _extract_meeting_days, _score_max_sections_per_day,
+                            _score_days_on_campus, _add_mandatory_break, _score_gaps_per_day, _score_gaps,
+                            _average_time, _extract_time_bounds, _score_consistency, _score_availability,
+                            _combined_score, score_combinations
+)
 from module.utils import parse_time, time_difference_in_minutes
 from module.config import config
 
