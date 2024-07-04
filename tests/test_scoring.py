@@ -8,6 +8,7 @@ from module.scoring import (_score_modality, _extract_meeting_days, _score_max_s
 from module.utils import parse_time, time_difference_in_minutes
 from module.config import config
 
+
 """ Testing _score_modality function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
 # Sample combination for testing
@@ -102,6 +103,7 @@ def test_extract_meeting_days_missing_key():
     section = {"Mtg_Days": ""}
     meeting_days = _extract_meeting_days(section)
     assert meeting_days == [], "Should return an empty list when 'Mtg_Days' key is empty"
+
 
 """Testing _score_max_sections_per_day function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
@@ -212,6 +214,7 @@ def test_score_days_on_campus_exceeding_limit(mock_config_days_on_campus):
     score = _score_days_on_campus(combination)
     assert score == 1, "Score should be 1 when days on campus exceed the preferred limit by 1 day"
 
+
 """Testing _add_mandatory_break function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
 # Mock configuration for testing
@@ -256,6 +259,7 @@ def test_no_mandatory_break_with_sections_only_after(mock_config_mandatory_break
     break_end = config["mandatory_break_end"]
     _add_mandatory_break(day_sections, break_start, break_end)
     assert len(day_sections) == 1, "Mandatory break should not be added when there are only sections after the break"
+
 
 """Testing _score_gaps_per_day function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
@@ -315,6 +319,7 @@ def test_score_gaps_per_day_multiple_gaps(mock_config_gap_weights):
     penalty_per_gap_hour = config["penalty_per_gap_hour"]
     score = _score_gaps_per_day(day_sections, max_allowed_gap, penalty_per_gap_hour)
     assert score == 4, "Score should be 4 when there are two gaps exceeding the allowed limit by 1 hour each"
+
 
 """Testing _score_gaps function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
@@ -396,6 +401,7 @@ def test_score_gaps_multiple_days(mock_config_gap_weights):
     score = _score_gaps(combination)
     assert score == 6, "Score should be 6 when multiple days have gaps exceeding the allowed limit"
 
+
 """Testingg _average_time function."""
 def test_average_time_single_time():
     """Test _average_time with a single time."""
@@ -456,6 +462,7 @@ def test_average_time_across_midnight():
     avg_time = _average_time(times)
     assert avg_time != time(0, 0), "The answer should be 0:00 PM, but this function does not handle times spanning across midnight"
 
+
 """Testing _extract_time_bounds function."""
 
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
@@ -512,6 +519,7 @@ def test_extract_time_bounds_multiple_meeting_days():
         "F": (parse_time("01:00 PM"), parse_time("02:00 PM"))
     }
     assert _extract_time_bounds(combination) == expected_bounds, "Should return correct time bounds for sections with multiple meeting days"
+
 
 """Test _score_consistency function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
@@ -602,6 +610,7 @@ def test_score_consistency_varied_start_and_end_times_plus_online_section(mock_c
     # The penalty weight is 1 per hour, which brings the penalties to 4 each.
     expected_scores = {"start_time_consistency_score": 4.0, "end_time_consistency_score": 4.0}
     assert _score_consistency(combination) == expected_scores, "Should return correct scores for varied start and end times"
+
 
 """Testing _score_availability function.
 The test contains mock configuration and mock data.  If mock values are changed, the test may not produce expected results."""
@@ -708,6 +717,7 @@ def test_score_availability_no_availability(mock_config_availability, mock_avail
     expected_score = 2.0  # Entire duration is out of bounds (2 hours), 1 penalty per hour
     score = _score_availability(combination, mock_availability)
     assert score == expected_score, f"Score should be {expected_score} when a class meets on SU with no availability"
+
 
 """Testing _combined_score function.
 The test contains mock configuration.  If mock config values are changed, the test may not produce expected results."""
