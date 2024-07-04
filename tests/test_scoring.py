@@ -29,7 +29,7 @@ def mock_config_mod():
 
 def test_score_modality_empty_combination(mock_config_mod):
     """Test _score_modality with an empty combination list."""
-    config.update(mock_config_mod) # Use mock_config_mod, instead of the regular config
+    config.update(mock_config_mod)
     empty_combination = []
     score = _score_modality(empty_combination)
     assert score == 0, "Score should be 0 for empty combination"
