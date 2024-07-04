@@ -90,7 +90,7 @@ Contains functions for visualizing the generated schedules.
 Contains the scheduling engine.  Generates valid course combinations, considering co-requisites and time conflicts.
 
 ### 5. scoring.py
-Contains the scoring layer.  Calculates scores for each course combination based on criteria like number of days on campus, gaps between classes, and modality preferences.  Additional scores will be added soon (e.g., length of days, consistency between days).  Other scores will be added eventually (e.g., prioritizing sections with lowest enrollment).
+Contains the scoring layer.  Calculates scores for each course combination based on criteria like number of days on campus, gaps between classes, modality preferences, length of days, and consistency between days.  Other scores will be added eventually (e.g., prioritizing sections with the lowest enrollment).
 
 ### 6. utils.py
 Contains utility functions used across multiple modules, such as time measurement and section grouping.
