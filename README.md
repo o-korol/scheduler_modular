@@ -78,7 +78,7 @@ To run tests, switch to tests directory and run pytest:
 ## Modules
 
 ### 1. config.py
-Contains configuration settings for the project, such as weights for scoring and day penalties.
+Contains configuration settings for the project, such as weights for scoring and penalties.
 
 ### 2. database_operations.py
 Handles database interactions, including retrieving course section information.
