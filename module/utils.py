@@ -56,11 +56,11 @@ def group_sections(df):
     coreq_df = df[pd.notna(df['Coreq_Sections'])]
     non_coreq_df = df[pd.isna(df['Coreq_Sections'])]
 
-    # Group sections of the same course meeting at the same time & same semester duration (e.g., full semester vs half)
+    # Group sections of the same course meeting at the same time, same semester duration (e.g., full semester vs half), in same location (e.g., MC vs NC), and having the same modality
     # This grouping is applied ONLY to courses that do NOT have corequisites, since different sections of a course with coreqs can have different coreq sections
     for _, row in non_coreq_df.iterrows(): # Iterate over the rows of the dataframe (_, allows to ignore index of the row)
         # Create a tuple key consisting of values of the current row, to uniquely identify a group
-        key = (row['Course_Name'], row['STime'], row['ETime'], row['Mtg_Days'], row['Duration'])
+        key = (row['Course_Name'], row['STime'], row['ETime'], row['Mtg_Days'], row['Duration'], row['Method'], row['Location'])
         if key not in groups: # If this key tuple has not been seen yet
             groups[key] = [] # Initialize a list for a new group
         groups[key].append(row['Name']) # Add the section name to the group
