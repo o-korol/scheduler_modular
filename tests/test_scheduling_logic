@@ -1,0 +1,260 @@
+import pandas as pd
+import pytest
+from module.scheduling_logic import get_coreqs, add_coreqs_to_combination, generate_combinations_with_coreqs
+
+"""Test get_coreqs function """
+def test_get_coreqs_no_coreqs():
+    section = {'Name': 'ENG-103-102', 'Coreq_Sections': None}
+    assert get_coreqs(section) == [], "Should return an empty list when there are no corequisites"
+
+def test_get_coreqs_single_coreq():
+    section = {'Name': 'BIO-106-301', 'Coreq_Sections': 'BIO-106L-301'}
+    assert get_coreqs(section) == ['BIO-106L-301'], "Should return a list with a single corequisite"
+
+def test_get_coreqs_multiple_coreqs():
+    section = {'Name': 'BIO-121-301', 'Coreq_Sections': 'BIO-121L-301, BIO-121L-302, BIO-121L-303, BIO-121L-304'}
+    assert get_coreqs(section) == ['BIO-121L-301', 'BIO-121L-302', 'BIO-121L-303', 'BIO-121L-304'], "Should return a list with multiple corequisites"
+
+""" # Script that generates database should remove extra white spaces, so this should not be necessar
+def test_get_coreqs_strip_whitespace():
+    section = {'Name': 'BIO-121-301', 'Coreq_Sections': 'BIO-121L-301 , BIO-121L-302 , BIO-121L-303 , BIO-121L-304'}
+    assert get_coreqs(section) == ['BIO-121L-301', 'BIO-121L-302', 'BIO-121L-303', 'BIO-121L-304'], "Should strip whitespace from corequisite names"
+"""
+
+"""Test add_coreqs_to_combination function with single coreq option"""
+# Mocking the retrieve_section_info function, to retrieve coreq section info
+def mock_retrieve_section_info(cursor, courses, section_cache):
+    # Set up mock coreq section sample with 1 coreq section option (MAT-096-006)
+    data = {
+        'Course_Name': ['MAT-096'],
+        'Name': ['MAT-096-006'],
+        'STime': ['09:00 AM'],
+        'ETime': ['10:00 AM'],
+        'SDate': ['2024-01-01'],
+        'EDate': ['2024-05-01'],
+        'Mtg_Days': ['M, W, F'],
+        'Coreq_Course': ['MAT-143'], # In the underlying data, if A has coreq of B, B has coreq of A
+        'Coreq_Sections': ['MAT-143-306'], # Single coreq section option
+        'Duration': 'Full Semester'
+    }
+    df = pd.DataFrame(data)
+    return df, None
+
+@pytest.fixture
+def sample_sections():
+    return [
+        {'Course_Name': 'ENG-103', 'Name': 'ENG-103-101', 'Coreq_Sections': None},
+        {'Course_Name': 'MAT-143', 'Name': 'MAT-143-306', 'Coreq_Sections': 'MAT-096-006'}
+    ]
+
+@pytest.fixture
+def mock_cursor(db_connection):
+    return db_connection
+
+@pytest.fixture
+def section_cache():
+    return {}
+
+@pytest.fixture
+def coreq_cache():
+    return {}
+
+@pytest.fixture(autouse=True)
+def mock_dependencies(monkeypatch):
+    """Replace specified real functions with mocks, automatically"""
+    monkeypatch.setattr("module.scheduling_logic.retrieve_section_info", mock_retrieve_section_info)
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", lambda x, y=None: False) # Default time conflict to False
+
+def test_add_coreqs_no_coreqs(sample_sections, mock_cursor, section_cache, coreq_cache):
+    combination = [sample_sections[0]] # Create a combination that consists of just one course (1st course in sample_sections dictionary), which has no coreq
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache) # No coreq to add, so return basic combination
+    assert result == [combination], "Should return the same combination when there are no corequisites"
+
+def test_add_coreqs_with_coreqs(sample_sections, mock_cursor, section_cache, coreq_cache):
+    combination = [sample_sections[1]] # Create a combination that consists of just one course (2nd course in sample_sections dictionary), which has coreq
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache)
+    assert len(result) == 1, "Should return one extended combination including corequisites"
+    assert len(result[0]) == 2, "The combination should include the original section and the corequisite section" # For a total of 2 sections
+    assert result[0][1]['Name'] == 'MAT-096-006', "The corequisite section should be added to the combination" # 2nd section should be the coreq section
+
+def test_add_coreqs_with_conflict(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch):
+    def mock_has_time_conflict(x, y): # Set time conflict to True (override the default):  section x and y have time conflict
+        return True
+
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", mock_has_time_conflict) # Set time conflict default to True
+    combination = [sample_sections[1]] # Create a combination that consists of just one course (2nd course in sample_sections dictionary), which has coreq
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache) # Combination should be dropped because a coreq cannot be scheduled due to time conflict
+    assert result == [], "Should return an empty list when there is a time conflict with corequisite"
+
+def test_add_coreqs_with_retrieval_error(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch):
+    def mock_retrieve_section_info_error(cursor, courses, section_cache):
+        """Make retrieve_section_info function (the mock version) return an error:  a coreq section data cannot be retrieved from database."""
+        raise Exception("Database error")
+
+    monkeypatch.setattr("module.scheduling_logic.retrieve_section_info", mock_retrieve_section_info_error)
+    combination = [sample_sections[1]] # Create a combination that consists of just one course (2nd course in sample_sections dictionary), which has coreq
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache) # Combination should be dropped because a coreq cannot be scheduled due to inability to retrieve coreq section info
+    assert result == [], "Should return an empty list when there is an error retrieving corequisites"
+
+"""Test add_coreqs_to_combination function with multiple coreq options"""
+@pytest.fixture
+def coreqs_mock_data():
+    # Set up mock coreq section sample with 2 coreq section options (BIO-172L-301 or BIO-172L-302)
+    data = {
+        'Course_Name': ['BIO-172L', 'BIO-172L'],
+        'Name': ['BIO-172L-301', 'BIO-172L-302'],
+        'Coreq_Course': ['BIO-172', 'BIO-172'],
+        'Coreq_Sections': ['BIO-172-301', 'BIO-172-301']
+    }
+    df = pd.DataFrame(data)
+    return df
+
+def mock_retrieve_section_info_multiple_coreqs(cursor, courses, section_cache, coreqs_mock_data):
+    return coreqs_mock_data, None
+
+def test_add_coreqs_multiple_options_no_conflict(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch, coreqs_mock_data):
+    """None of the multiple coreqs have time conflict with the basic combination"""
+    def mock_retrieve_section_info_multiple_coreqs(cursor, courses, section_cache):
+        return coreqs_mock_data, None
+
+    monkeypatch.setattr("module.scheduling_logic.retrieve_section_info", mock_retrieve_section_info_multiple_coreqs)
+
+    combination = [{'Course_Name': 'BIO-172', 'Name': 'BIO-172-301', 'Coreq_Sections': 'BIO-172L-301, BIO-172L-302'}]  # Set up basic combination with no corequisites
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache)
+    assert len(result) == 2, "Should return two extended combinations including corequisites" # Neither coreq option has time conflict, so expect two extended combinations
+    assert len(result[0]) == 2, "The first combination should include 2 sections, the original section and a corequisite section"
+    assert result[0][1]['Name'] == 'BIO-172L-301', "The first extended combination should contain BIO-172L-301, the first corequisite section"
+    assert len(result[1]) == 2, "The second combination should include 2 sections, the original section and a corequisite section"
+    assert result[1][1]['Name'] == 'BIO-172L-302', "The second extended combination should contain BIO-172L-302, the second corequisite section"
+
+def test_add_coreqs_one_conflict(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch, coreqs_mock_data):
+    """One of the multiple coreqs has time conflict with the basic combination"""
+    def mock_retrieve_section_info_multiple_coreqs(cursor, courses, section_cache):
+        return coreqs_mock_data, None
+
+    def mock_has_time_conflict(section1, section2):
+        # Simulate a time conflict for one of two coreq sections, BIO-172L-301
+        if section2['Name'] == 'BIO-172L-301':
+            return True
+        return False
+
+    monkeypatch.setattr("module.scheduling_logic.retrieve_section_info", mock_retrieve_section_info_multiple_coreqs)
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", mock_has_time_conflict)
+
+    combination = [{'Course_Name': 'BIO-172', 'Name': 'BIO-172-301', 'Coreq_Sections': 'BIO-172L-301, BIO-172L-302'}]  # Set up basic combination with no corequisites
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache)
+    assert len(result) == 1, "Should return one extended combination including corequisites" # One coreq option has time conflict, so expect one extended combination to be returned
+    assert len(result[0]) == 2, "The combination should include 2 sections, the original section and a corequisite section"
+    assert result[0][1]['Name'] == 'BIO-172L-302', "The extended combination should contain BIO-172L-302, the corequisite section that does not have time conflict"
+
+def test_add_coreqs_all_conflict(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch, coreqs_mock_data):
+    """Each of the multiple coreqs has time conflict with the basic combination"""
+    def mock_retrieve_section_info_multiple_coreqs(cursor, courses, section_cache):
+        return coreqs_mock_data, None
+
+    def mock_has_time_conflict(section1, section2):
+        # Simulate a time conflict for both coreq sections, BIO-172L-301 and BIO-172L-302
+        if section2['Name'] == 'BIO-172L-301' or section2['Name'] == 'BIO-172L-302':
+            return True
+        return False
+
+    monkeypatch.setattr("module.scheduling_logic.retrieve_section_info", mock_retrieve_section_info_multiple_coreqs)
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", mock_has_time_conflict)
+
+    combination = [{'Course_Name': 'BIO-172', 'Name': 'BIO-172-301', 'Coreq_Sections': 'BIO-172L-301, BIO-172L-302'}]  # Set up basic combination with no corequisites
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache)
+    assert len(result) == 0, "Should return no extended combination including corequisites" # Both coreq options have time conflict, so expect zero extended combination to be returned
+
+"""Test generate_combinations_with_coreq function"""
+@pytest.fixture
+def empty_df(): # Create empty dataframe for testing
+    return pd.DataFrame(columns=['Course_Name', 'Name', 'Coreq_Sections', 'STime', 'ETime', 'SDate', 'EDate', 'Mtg_Days', 'Duration'])
+
+def test_generate_combinations_empty_df(empty_df, mock_cursor, section_cache):
+    result = generate_combinations_with_coreqs(mock_cursor, empty_df, section_cache)
+    assert result == [], "Should return an empty list for an empty DataFrame"
+
+def test_generate_combinations_no_coreqs(sample_sections, mock_cursor, section_cache, coreq_cache, monkeypatch):
+    # No corequisites, should return original combinations
+    combination = [sample_sections[0]]  # ENG-103-101 with no corequisites
+    result = add_coreqs_to_combination(combination, mock_cursor, coreq_cache, section_cache)
+    assert result == [combination], "Should return the original combination when there are no corequisites"
+
+@pytest.fixture
+def multi_course_df():
+    data = {
+        'Course_Name': ['BIO-172', 'BIO-172', 'MAT-101', 'MAT-101'],
+        'Name': ['BIO-172-301', 'BIO-172-302', 'MAT-101-101', 'MAT-101-102'],
+        'Coreq_Sections': [None, None, None, None]
+    }
+    return pd.DataFrame(data)
+
+def test_generate_combinations_multi_course(multi_course_df, mock_cursor, section_cache, coreq_cache):
+    result = generate_combinations_with_coreqs(mock_cursor, multi_course_df, section_cache)
+    assert len(result) == 4, "Should return all combinations for multiple courses with no conflicts"
+
+    # Extracting only the relevant attribute (Name) for comparison
+    simplified_result = [[{section['Name']} for section in combination] for combination in result]
+
+    expected_combinations = [
+        [{'BIO-172-301'}, {'MAT-101-101'}],
+        [{'BIO-172-301'}, {'MAT-101-102'}],
+        [{'BIO-172-302'}, {'MAT-101-101'}],
+        [{'BIO-172-302'}, {'MAT-101-102'}]
+    ]
+
+    assert simplified_result == expected_combinations, "Should return all valid combinations for multiple courses with no conflicts"
+
+@pytest.fixture
+def pre_existing_conflict_df():
+    data = {
+        'Course_Name': ['BIO-172', 'MAT-101'],
+        'Name': ['BIO-172-301', 'MAT-101-101'],
+        'Coreq_Sections': [None, None]
+    }
+    return pd.DataFrame(data)
+
+def test_generate_combinations_pre_existing_conflict(pre_existing_conflict_df, mock_cursor, section_cache, monkeypatch):
+    def mock_has_time_conflict(section1, section2=None):
+        return True  # Simulate a time conflict between sections
+
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", mock_has_time_conflict)
+
+    result = generate_combinations_with_coreqs(mock_cursor, pre_existing_conflict_df, section_cache)
+    assert result == [], "Should return no combinations if there are pre-existing time conflicts"
+
+def test_generate_combinations_partial_conflict(multi_course_df, mock_cursor, section_cache, monkeypatch):
+    def mock_has_time_conflict(sections, new_section=None):
+        if new_section:
+            print(f"Checking conflict between {sections[0]['Name']} and {new_section['Name']}")
+            if (sections[0]['Name'] == 'BIO-172-301' and new_section['Name'] == 'MAT-101-101') or \
+               (sections[0]['Name'] == 'MAT-101-101' and new_section['Name'] == 'BIO-172-301'):
+                return True
+        else:
+            for section1 in sections:
+                for section2 in sections:
+                    if section1['Name'] != section2['Name']:
+                        if (section1['Name'] == 'BIO-172-301' and section2['Name'] == 'MAT-101-101') or \
+                           (section1['Name'] == 'MAT-101-101' and section2['Name'] == 'BIO-172-301'):
+                            return True
+        return False
+
+    def mock_add_coreqs_to_combination(combination, cursor, coreq_cache, section_cache):
+        # For testing purposes, let's assume no additional coreqs are added
+        return [combination]
+
+    monkeypatch.setattr("module.scheduling_logic.has_time_conflict", mock_has_time_conflict)
+    monkeypatch.setattr("module.scheduling_logic.add_coreqs_to_combination", mock_add_coreqs_to_combination)
+
+    result = generate_combinations_with_coreqs(mock_cursor, multi_course_df, section_cache)
+
+    # Extracting only the relevant attributes (Course_Name and Name) for comparison
+    simplified_result = [[{section['Name']} for section in combination] for combination in result]
+    expected_combinations = [
+        [{'BIO-172-301'}, {'MAT-101-102'}], # Missing conflicting combination (BIO-172-301, MAT-101-101)
+        [{'BIO-172-302'}, {'MAT-101-101'}],
+        [{'BIO-172-302'}, {'MAT-101-102'}]
+    ]
+
+    # Ensure the combination with the conflict is excluded
+    assert simplified_result == expected_combinations, "Should return valid combinations excluding those with conflicts"
