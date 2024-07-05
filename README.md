@@ -27,9 +27,9 @@ scheduler_modularized/
 │   ├── __init__.py
 │   ├── conftest.py
 │   ├── test_database_operations.py
+│   ├── test_scheduling_logic.py
 │   ├── test_scoring.py
-│   ├── test_utils.py
-│   └── (coming soon) test_scheduling_logic.py
+│   └── test_utils.py
 ├── main.py
 ├── README.md
 └── schedules.pdf
