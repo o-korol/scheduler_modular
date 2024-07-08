@@ -1,391 +1,336 @@
-import pytest
-import pandas as pd
-from datetime import datetime, time
-from module.utils import (
-    group_sections, parse_time, parse_date, parse_time_range,
-    time_difference_in_minutes, has_time_conflict, sort_combination,
-    print_summary, execution_times, errors, time_function
-)
-
-"""Testing _group_sections function. """
-
-
-def test_not_group_sections_with_coreqs():
-    """Test that sections with corequisites are not grouped."""
-
-    # Create sample dataset that contains 3 sections of the same course: 2 with no coreqs (should be grouped) and 1 with a corequisite (should not be grouped)
-    # Other than coreqs, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, 'ESL-116'],
-        # One section has a corequisite and should NOT be grouped with others
-        'Coreq_Sections': [None, None, 'ESL-116-101'],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "Section with corequisite should remain ungrouped"
-
-
-def test_group_same_course():
-    """Test grouping sections of the same course."""
-
-    # Create sample dataset that contains 3 sections:  2 of the same course (should be grouped) and 1 of a different course (should not be grouped)
-    # Other than the course names and section names, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'CHE-171'],
-        # One section belongs to a different course and should not be grouped with others
-        'Name': ['ENG-103-101', 'ENG-103-102', 'CHE-171-101'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, None],
-        'Coreq_Sections': [None, None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'CHE-171-101' in grouped_names, "Ungrouped section should remain as is"
-
-
-def test_group_same_dates():
-    """Test grouping sections with the same start and end dates."""
-
-    # Create sample dataset that contains 4 sections: 2 with the same duration (should be grouped) and 2 with a different durations (should not be grouped)
-    # Other than the durations, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103', 'ENG-103-104'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-03-01 00:00:00', '2024-04-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, None, None],
-        'Coreq_Sections': [None, None, None, None],
-        # Different durations
-        'Duration': ['Full Semester', 'Full Semester', '1st Half', '2nd Half'],
-        'Method': ['LEC', 'LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 3, "Grouped DataFrame should have three rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "1st Half section should remain ungrouped"
-    assert 'ENG-103-104' in grouped_names, "2nd Half section should remain ungrouped"
-
-
-def test_group_same_times():
-    """Test grouping sections with the same start and end times."""
-
-    # Create sample dataset that contains 3 sections: 2 with the same times (should be grouped) and 1 with a different time (should not be grouped)
-    # Other than the times, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103'],
-        'STime': ['08:00 AM', '08:00 AM', '09:00 AM'],  # Different times
-        'ETime': ['09:00 AM', '09:00 AM', '10:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, None],
-        'Coreq_Sections': [None, None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "Section with different time should remain ungrouped"
-
-
-def test_group_same_days():
-    """Test grouping sections with the same meeting days."""
-
-    # Create sample dataset that contains 3 sections: 2 with the same meeting days (should be grouped), and 1 with different meeting days (should not be grouped)
-    # Other than the meeting days, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'T, TH'],  # Different meeting days
-        'Coreq_Course': [None, None, None],
-        'Coreq_Sections': [None, None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "Section with different meeting days should remain ungrouped"
-
-
-def test_group_same_modality():
-    """Test grouping sections with the same modality."""
-
-    # Create sample dataset that contains 3 sections: 2 with the same modality (should be grouped), and 1 with different modality (should not be grouped)
-    # Other than the modality, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, None],
-        'Coreq_Sections': [None, None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'HYB'],  # Different modalities
-        'Location': ['MC', 'MC', 'MC']
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "Section with different location should remain ungrouped"
-
-
-def test_group_same_location():
-    """Test grouping sections with the same location."""
-
-    # Create sample dataset that contains 3 sections: 2 with the same location (should be grouped), and 1 with different location (should not be grouped)
-    # Other than location, all sections have the same attributes
-    data = {
-        'Course_Name': ['ENG-103', 'ENG-103', 'ENG-103'],
-        'Name': ['ENG-103-101', 'ENG-103-102', 'ENG-103-103'],
-        'STime': ['08:00 AM', '08:00 AM', '08:00 AM'],
-        'ETime': ['09:00 AM', '09:00 AM', '09:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F'],
-        'Coreq_Course': [None, None, None],
-        'Coreq_Sections': [None, None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester'],
-        'Method': ['LEC', 'LEC', 'LEC'],
-        'Location': ['MC', 'MC', 'NC']  # Different locations
-    }
-    df = pd.DataFrame(data)
-
-    # Group sections
-    grouped_df = group_sections(df)
-
-    # Check the number of rows after grouping
-    assert len(grouped_df) == 2, "Grouped DataFrame should have two rows"
-
-    # Verify the content of the grouped DataFrame
-    grouped_names = grouped_df['Name'].values
-    assert 'ENG-103-101, ENG-103-102' in grouped_names, "Grouped sections should be combined"
-    assert 'ENG-103-103' in grouped_names, "Section with different location should remain ungrouped"
-
-
-"""Testing _parse_time function."""
-
-
-def test_parse_time():
-    """Test the parse_time function."""
-    assert parse_time('08:00 AM') == time(8, 0), "Parsed time should be 08:00 AM"
-    assert parse_time('11:59 PM') == time(23, 59), "Parsed time should be 11:59 PM"
-    assert parse_time('') is None, "Empty string should return None"
-
-
-"""Testing _parse_date function."""
-
-
-def test_parse_date():
-    """Test the parse_date function."""
-    assert parse_date('2024-01-01 08:00:00') == datetime(2024, 1, 1, 8,
-                                                         0, 0), "Parsed date should be 2024-01-01 08:00:00"
-    assert parse_date('') is None, "Empty string should return None"
-
-
-"""Testing _parse_time_range function."""
-
-
-def test_parse_time_range():
-    """Test the parse_time_range function."""
-    start, end = parse_time_range('08:00 AM - 09:00 AM')
-    assert start == time(8, 0), "Start time should be 08:00 AM"
-    assert end == time(9, 0), "End time should be 09:00 AM"
-
-
-"""Testing _time_difference_in_minutes function."""
-
-
-def test_time_difference_in_minutes():
-    """Test the time_difference_in_minutes function."""
-    t1 = time(9, 0)
-    t2 = time(8, 0)
-    assert time_difference_in_minutes(t1, t2) == 60, "Difference should be 60 minutes"
-
-
-"""Testing _has_time_conflict function."""
-
-
-def test_has_time_conflict():
-    """Test the has_time_conflict function."""
-
-    # Create sample dataset that contains sections that do NOT have time conflict with each other
-    # Other than the meeting times, all sections have the same non-name attributes
-    data = {
-        'Course_Name': ['ENG-103', 'BIO-151', 'CHE-171'],
-        'Name': ['ENG-103-101', 'BIO-151-102', 'CHE-171-101'],
-        'STime': ['08:00 AM', '09:00 AM', '10:00 AM'],  # Different meeting times
-        'ETime': ['09:00 AM', '10:00 AM', '11:00 AM'],
-        'SDate': ['2024-01-01 00:00:00', '2024-01-01 00:00:00', '2024-01-01 00:00:00'],
-        'EDate': ['2024-05-01 00:00:00', '2024-05-01 00:00:00', '2024-05-01 00:00:00'],
-        'Mtg_Days': ['M, W, F', 'M, W, F', 'M, W, F']
-    }
-    df = pd.DataFrame(data)
-
-    # Convert the DataFrame to a list of dictionaries
-    sections = df.to_dict('records')
-
-    # Check for time conflicts
-    assert has_time_conflict(
-        sections) is False, "There should be no conflict among the sample sections"
-
-
-"""Testing _sort_combination function."""
-
-
-def test_sort_combination():
-    """Test the sort_combination function."""
-
-    # Create sample data to sort sections for printed output:  sort by the meeting time of the section's first meeting
-    # Sections without meeting times or days (e.g., ONLIN, INTRN, etc) should be listed last, sorted alphabetically by course name
-    data = {
-        'Course_Name': ['ENG-103', 'BIO-151', 'CHE-171', 'PSY-103', 'BMC-190'],
-        'Name': ['ENG-103-101', 'BIO-151-101', 'CHE-171-101', 'PSY-103-101', 'BMC-190-101'],
-        'STime': ['08:00 AM', '09:00 AM', '10:00 AM', None, None],
-        'ETime': ['09:00 AM', '10:00 AM', '11:00 AM', None, None],
-        'Mtg_Days': ['M, W, F', 'T, TH', 'M, W', None, None],
-        'Duration': ['Full Semester', 'Full Semester', 'Full Semester', 'Full Semester', 'Full Semester'],
-        # Two sections have no meeting times or dates (should be listed last)
-        'Method': ['LEC', 'LEC', 'LEC', 'ONLIN', 'INTRN']
-    }
-    df = pd.DataFrame(data)
-
-    # Convert the DataFrame to a list of dictionaries
-    combination = df.to_dict('records')
-
-    # Sort the combination
-    sorted_combination = sort_combination(combination)
-    first_section = sorted_combination[0]
-
-    # Check that the first section is correctly sorted
-    assert first_section['Course_Name'] == 'ENG-103', "First sorted section should be ENG-103"
-    assert first_section['STime'] == '08:00 AM', "First sorted section should start at 08:00 AM"
-    assert first_section['Mtg_Days'][0] == 'M', "First sorted section should meet on Monday"
-
-    # Check the sorting order for the rest of the sections
-    sorted_course_names = [section['Course_Name'] for section in sorted_combination]
-    # The expected order based on the current sorting logic of the sort_combination function
-    expected_order = ['ENG-103', 'CHE-171', 'BIO-151', 'BMC-190', 'PSY-103']
-    assert sorted_course_names == expected_order, f"Courses should be sorted in the correct order: {expected_order}"
-
-
-def test_print_summary(capsys):
-    """Test the print_summary function with captured output."""
-
-    # Create sample data:  a list of tuples, each of which contains two items, a list of sections in a particular combination and the desirability score for that combination
-    # The function receives scored_combination, which are already sorted by combined_score, with the lowest (best) scores first
-    scored_combinations = [
-        (
-            [
-                {'Name': 'BIO-151-101', 'Mtg_Days': 'M, W, F',
-                    'STime': '08:00 AM', 'ETime': '09:00 AM', 'Method': 'LEC'},
-                {'Name': 'CHE-171-102', 'Mtg_Days': 'M, W, F',
-                    'STime': '08:00 AM', 'ETime': '09:00 AM', 'Method': 'LEC'}
-            ],
-            {'score': 1}
-        ),
-        (
-            [
-                {'Name': 'CHE-171-101', 'Mtg_Days': 'T, TH',
-                    'STime': '10:00 AM', 'ETime': '11:00 AM', 'Method': 'LEC'},
-                {'Name': 'CHE-151-102', 'Mtg_Days': 'T, TH',
-                    'STime': '10:00 AM', 'ETime': '11:00 AM', 'Method': 'LEC'}
-            ],
-            {'score': 2}
+from datetime import datetime
+import functools
+import logging
+import time
+from typing import List, Dict, Tuple, Any
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+execution_times = {}
+errors = {}
+total_execution_time = 0
+
+
+def time_function(func):
+    """
+    Decorator to measure the execution time of a function and store the results.
+
+    Args:
+        func (function): The function to be wrapped and timed.
+
+    Returns:
+        function: The wrapped function with timing functionality.
+    """
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        global total_execution_time
+        start_time = time.time()
+        try:
+            result = func(*args, **kwargs)
+        except Exception as e:
+            func_name = func.__name__
+            error_message = str(e)
+            section_info = ""
+            if "sections" in kwargs and kwargs['sections']:
+                section_info = f"in section {kwargs['sections'][0]['Name']}"
+            detailed_message = f"{error_message} {section_info}"
+            if func_name not in errors:
+                errors[func_name] = set()
+            if detailed_message not in errors[func_name]:
+                errors[func_name].add(detailed_message)
+
+            logger.error(f"{func_name}: {detailed_message}")
+            raise e
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        total_execution_time += elapsed_time
+        func_name = func.__name__
+
+        if func_name not in execution_times:
+            execution_times[func_name] = []
+        execution_times[func_name].append(elapsed_time)
+
+        logger.debug(f"{func_name} executed in {elapsed_time:.4f} seconds")
+        return result
+    return wrapper
+
+
+def parse_time(time_str):
+    """
+    Parse a time string into a time object.
+
+    Args:
+        time_str (str): The time string to be parsed.
+
+    Returns:
+        datetime.time: The parsed time object.
+    """
+    return datetime.strptime(time_str, '%I:%M %p').time() if time_str else None
+
+
+def parse_date(date_str):
+    """
+    Parse a date string into a datetime object.
+
+    Args:
+        date_str (str): The date string to be parsed.
+
+    Returns:
+        datetime: The parsed datetime object.
+    """
+    return datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S') if date_str else None
+
+
+def parse_time_range(time_range: str) -> Tuple[time, time]:
+    """
+    Parse a time range string into a tuple of time objects.
+
+    Args:
+        time_range (str): The time range string to be parsed.
+
+    Returns:
+        tuple: A tuple containing the start and end time objects.
+    """
+    start_str, end_str = time_range.split('-')
+    start_time = datetime.strptime(start_str.strip(), "%I:%M %p").time()
+    end_time = datetime.strptime(end_str.strip(), "%I:%M %p").time()
+    return start_time, end_time
+
+
+def time_difference_in_minutes(t1: time, t2: time) -> int:
+    """
+    Calculate the difference between two times in minutes.
+
+    Args:
+        t1 (time): The first time.
+        t2 (time): The second time.
+
+    Returns:
+        int: The difference in minutes.
+    """
+    datetime1 = datetime.combine(datetime.min, t1)
+    datetime2 = datetime.combine(datetime.min, t2)
+    return int((datetime1 - datetime2).total_seconds() // 60)
+
+
+def parse_section_times(section):
+    """
+    Parse and add parsed time, date, and days to a section.
+    (Helper function of has_time_conflict)
+
+    Args:
+        section (dict): The section dictionary to be parsed.
+    """
+    if 'parsed_start_time' not in section:
+        section['parsed_start_time'] = parse_time(section['STime'])
+    if 'parsed_end_time' not in section:
+        section['parsed_end_time'] = parse_time(section['ETime'])
+    if 'parsed_start_date' not in section:
+        section['parsed_start_date'] = parse_date(section['SDate'])
+    if 'parsed_end_date' not in section:
+        section['parsed_end_date'] = parse_date(section['EDate'])
+    if 'parsed_days' not in section:
+        section['parsed_days'] = (set(section['Mtg_Days'].split(', '))
+                                  if section['Mtg_Days'] else set())
+
+
+def check_time_conflict(section1, section2):
+    """
+    Check if two sections have a time conflict on common meeting days.
+    (Helper function of has_time_conflict)
+
+    Args:
+        section1 (dict): The first section dictionary.
+        section2 (dict): The second section dictionary.
+
+    Returns:
+        bool: True if there is a time conflict, False otherwise.
+    """
+    # Find common meeting days: find intersection of meeting days sets
+    common_days = section1['parsed_days'].intersection(section2['parsed_days'])
+
+    # Abort if no common days
+    if not common_days:
+        return False
+
+    # Abort if sections do not have start time
+    if (section1['parsed_start_time'] is None or
+        section2['parsed_start_time'] is None):
+        return False
+
+    # Check if there is a time overlap between the two sections
+    # Check both ways, just in case the sections are not sorted by time yet
+    has_conflict = (
+        section1['parsed_start_time'] < section2['parsed_end_time'] and
+        section1['parsed_end_time'] > section2['parsed_start_time']
+    )
+
+    # Return True if there is time conflict
+    return has_conflict
+
+
+@time_function
+def has_time_conflict(sections, new_section=None):
+    """
+    Checks whether two sections have a time conflict. A critical part of the scheduling engine.
+
+    Args:
+        sections (list): A list of section dictionaries.
+        new_section (dict, optional): A new section to check against the list. Defaults to None.
+
+    Returns:
+        bool: True if there is a time conflict, False otherwise.
+    """
+    for section in sections:
+        parse_section_times(section)
+
+    if new_section:
+        parse_section_times(new_section)
+        for section in sections:
+            if check_time_conflict(section, new_section):
+                return True
+        return False
+
+    # Assign fake sorting time (midnight) to sections without meeting time
+    min_time = parse_time('12:00 AM')
+
+    # Sort sections by start date, end date, and start time
+    sections.sort(
+        key=lambda x: (
+            x['parsed_start_date'],
+            x['parsed_end_date'],
+            x['parsed_start_time'] if x['parsed_start_time'] is not None else min_time
         )
-    ]
+    )
 
-    # Call the function that prints to the console
-    print_summary(scored_combinations)
+    for i, s1 in enumerate(sections):
+        for s2 in sections[i + 1:]:
+            if s1['parsed_end_date'] < s2['parsed_start_date']:
+                break
+            if check_time_conflict(s1, s2):
+                return True
+    return False
 
-    # Capture the output
-    captured = capsys.readouterr()
 
-    # Assert that the expected output is in the captured output
-    assert "Generated valid schedule combinations" in captured.out, "Output should contain summary message"
-    assert "Option 1: Score = 1" in captured.out, "Output should contain details of the first combination"
-    assert "BIO-151-101 (M, W, F 08:00 AM - 09:00 AM)" in captured.out, "Output should contain details of the first section in the first combination"
-    assert "Option 2: Score = 2" in captured.out, "Output should contain details of the second combination"
-    assert "CHE-171-101 (T, TH 10:00 AM - 11:00 AM)" in captured.out, "Output should contain details of the first section in the second combination"
+@time_function
+def sort_combination(combination):
+    """
+    Sort a combination of sections by meeting days and start times.
+
+    Args:
+        combination (list): A list of section dictionaries.
+
+    Returns:
+        list: The sorted list of sections.
+    """
+    day_to_number = {'M': 0, 'T': 1, 'W': 2, 'TH': 3, 'F': 4, 'S': 5, 'SU': 6}
+
+    def sort_key(section):
+        if not section["Mtg_Days"]:
+            return (7, section["Name"])  # Sort sections with no meeting days to the end
+
+        # Get the first meeting day
+        first_day = section["Mtg_Days"].split(', ')[0]
+        # Map the day to its corresponding number, default to 8 if not found
+        day_number = day_to_number.get(first_day, 8)
+        # Parse the start time, default to '12:00 AM' if missing
+        start_time = parse_time(section["STime"]) if section["STime"] else parse_time('12:00 AM')
+        # Return a tuple (day_number, start_time) for sorting
+        return (day_number, start_time)
+
+    # Sort the combination using the sort_key
+    return sorted(combination, key=sort_key)
+
+
+@time_function
+def print_summary(scored_combinations):
+    """
+    Print a summary of scored schedule combinations.
+
+    Args:
+        scored_combinations (list): A list of tuples containing combinations and their scores.
+    """
+    def format_section(section):
+        section_name = section["Name"]
+        meeting_days = section["Mtg_Days"]
+
+        meeting_days_str = (
+            meeting_days
+            if meeting_days
+            else f"{section['Method']} - No specified meeting times"
+        )
+
+        meeting_times = (
+            f"{section['STime']} - {section['ETime']}"
+            if section['STime'] and section['ETime']
+            else ""
+        )
+        return f"{section_name} ({meeting_days_str} {meeting_times})"
+
+    def print_combination(combination, option_number, scores):
+        sorted_combination = sort_combination(combination)
+        # Generate header dynamically,
+        # from the dictionary of scores generated by _combined_score function
+        # (scores have names like availability_score;
+        # in the title they are changed to Availability Score)
+        header = (
+            ", ".join(
+                [
+                    f"{key.replace('_', ' ').title()} = {value}"
+                    for key, value in scores.items()
+                ]
+            )
+        )
+
+        print(f"Option {option_number}: {header}")
+        for section in sorted_combination:
+            print(format_section(section))
+        print()
+
+    print("Generated valid schedule combinations:")
+
+    if len(scored_combinations) > 100:
+        print("BEST 50 COMBINATIONS:")
+        for i, (combination, scores) in enumerate(scored_combinations[:50], start=1):
+            print_combination(combination, i, scores)
+
+        print("WORST 50 COMBINATIONS:")
+        for i, (combination, scores) in enumerate(scored_combinations[-50:], start=len(scored_combinations)-49):
+            print_combination(combination, i, scores)
+    else:
+        for i, (combination, scores) in enumerate(scored_combinations, start=1):
+            print_combination(combination, i, scores)
+
+
+def print_execution_summary():
+    """
+    Print a summary of execution times for timed functions.
+    """
+    print("\nExecution Time Summary:")
+    for func_name, times in execution_times.items():
+        total_time = sum(times)
+        avg_time = total_time / len(times)
+        num_loops = len(times)
+        print(
+            f"{func_name}: Total time = {total_time:.4f} seconds, "
+            f"Average time per loop = {avg_time:.4f} seconds, "
+            f"Loops = {num_loops}"
+        )
+
+
+def print_error_summary():
+    """
+    Print a summary of errors encountered during function executions.
+    """
+    print("\nError Summary:")
+    for func_name, error_set in errors.items():
+        print(f"{func_name}: {len(error_set)} unique errors")
+        for error_message in error_set:
+            print(f"  {error_message}")
+
+
+class ConfigurationError(Exception):
+    """Custom exception for configuration errors."""
+    pass
