@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from module.scheduling_logic import get_coreqs, add_coreqs_to_combination, generate_combinations_with_coreqs
 
 """Test get_coreqs function """
