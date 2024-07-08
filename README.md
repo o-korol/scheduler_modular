@@ -10,8 +10,7 @@ scheduler_modularized/
 │   ├── cleaned_sample_schedule_SP24_6.csv
 │   ├── generate_db.py
 │   ├── sample_schedule_SP24_6.csv
-│   ├── schedule.db
-│   └── database_test_failures.csv
+│   └── schedule.db  
 ├── mockup/
 │   ├── __init__.py
 │   ├── mockup.py
