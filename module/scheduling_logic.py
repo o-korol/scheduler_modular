@@ -1,8 +1,10 @@
 from itertools import product
 from typing import List, Dict, Any
-from . import utils
-from .database_operations import retrieve_section_info
-from .utils import has_time_conflict
+
+from module.database_operations import retrieve_section_info
+from module import utils
+from module.utils import has_time_conflict
+
 
 def get_coreqs(section: Dict[str, Any]) -> List[str]:
     """
@@ -17,7 +19,13 @@ def get_coreqs(section: Dict[str, Any]) -> List[str]:
     coreqs = section.get('Coreq_Sections', '')
     return [coreq.strip() for coreq in coreqs.split(',')] if coreqs else []
 
-def fetch_coreq_section(coreq: str, cursor: Any, coreq_cache: Dict[str, Any], section_cache: Dict[str, Any]) -> List[Dict[str, Any]]:
+
+def fetch_coreq_section(
+    coreq: str,
+    cursor: Any,
+    coreq_cache: Dict[str, Any],
+    section_cache: Dict[str, Any]
+) -> List[Dict[str, Any]]:
     """
     Fetch corequisite section details from cache or database.
 
@@ -33,8 +41,12 @@ def fetch_coreq_section(coreq: str, cursor: Any, coreq_cache: Dict[str, Any], se
     if coreq not in coreq_cache:
         coreq_course = coreq.rsplit('-', 1)[0]
         coreq_df, _ = retrieve_section_info(cursor, [coreq_course], section_cache)
-        coreq_cache[coreq] = coreq_df[coreq_df['Name'].str.strip().str.upper() == coreq].to_dict('records')
+        coreq_cache[coreq] = coreq_df[
+            coreq_df['Name'].str.strip().str.upper() == coreq
+        ].to_dict('records')
+
     return coreq_cache[coreq]
+
 
 def handle_coreq_error(e: Exception, section_name: str):
     """
@@ -50,8 +62,14 @@ def handle_coreq_error(e: Exception, section_name: str):
         utils.errors['add_coreqs_to_combination'] = set()
     utils.errors['add_coreqs_to_combination'].add(detailed_message)
 
+
 @utils.time_function
-def add_coreqs_to_combination(combination: List[Dict[str, Any]], cursor: Any, coreq_cache: Dict[str, Any], section_cache: Dict[str, Any]) -> List[List[Dict[str, Any]]]:
+def add_coreqs_to_combination(
+    combination: List[Dict[str, Any]],
+    cursor: Any,
+    coreq_cache: Dict[str, Any],
+    section_cache: Dict[str, Any]
+) -> List[List[Dict[str, Any]]]:
     """
     Add corequisite sections to a given combination of sections.
 
@@ -62,7 +80,8 @@ def add_coreqs_to_combination(combination: List[Dict[str, Any]], cursor: Any, co
         section_cache (Dict[str, Any]): Cache for section information.
 
     Returns:
-        list: A list of extended combinations including corequisites, or an empty list if no extension is possible.
+        list: A list of extended combinations including corequisites,
+        or an empty list if no extension is possible.
     """
     coreq_names = set(section['Name'].strip() for section in combination)
     processed_coreqs = set()
@@ -99,8 +118,13 @@ def add_coreqs_to_combination(combination: List[Dict[str, Any]], cursor: Any, co
 
     return provisional_combinations
 
+
 @utils.time_function
-def generate_combinations_with_coreqs(cursor: Any, df: Any, section_cache: Dict[str, Any]) -> List[List[Dict[str, Any]]]:
+def generate_combinations_with_coreqs(
+    cursor: Any,
+    df: Any,
+    section_cache: Dict[str, Any]
+) -> List[List[Dict[str, Any]]]:
     """
     Generate valid section combinations including corequisite sections.
 
@@ -116,7 +140,10 @@ def generate_combinations_with_coreqs(cursor: Any, df: Any, section_cache: Dict[
         return []
 
     courses = df['Course_Name'].unique()
-    sections_by_course = {course: df[df['Course_Name'] == course].to_dict('records') for course in courses}
+    sections_by_course = {
+        course: df[df['Course_Name'] == course].to_dict('records')
+        for course in courses
+    }
     coreq_cache = {}
     all_combinations = list(product(*sections_by_course.values()))
     valid_combinations = []
