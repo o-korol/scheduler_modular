@@ -2,14 +2,18 @@
 When adding a new scoring function, remember to add the new score to _combined_score and score_combinations functions in this module.
 The header in print_summary and the title in plot_schedule should update automatically.
 """
-from datetime import datetime, time
+from datetime import time
 from typing import List, Dict, Tuple, Any
-from . import utils
-from .utils import parse_time, parse_time_range, time_difference_in_minutes
-from .config import config
+
+from module.config import config
+from module import utils
+from module.utils import (parse_time, parse_time_range, time_difference_in_minutes,
+                          errors, logger, ConfigurationError)
+
 
 # Constants
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
+
 
 @utils.time_function
 def _score_modality(combination: List[Dict[str, Any]]) -> int:
@@ -23,29 +27,36 @@ def _score_modality(combination: List[Dict[str, Any]]) -> int:
         int: The modality score.
 
     Note:
-        this function will need to be modified to handle "no preference" option, treating it just as modality preference met condition.
+        this function will need to be modified to handle "no preference" option,
+        treating it just as if the modality preference are met condition.
     """
     try:
-        modality_preferences = config["modality_preferences"]  # Get student's modality preferences from config
+        # Get student's modality preferences from config
+        modality_preferences = config["modality_preferences"]
     except KeyError:
-        raise ConfigurationError("Missing critical configuration: 'modality_preferences'") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError("Missing critical configuration: 'modality_preferences'")
 
     modality_score = 0
 
     for section in combination:
-        course_name = '-'.join(section["Name"].split('-')[:2]) # Get course name from section name
+        # Get course name from section name
+        course_name = '-'.join(section["Name"].split('-')[:2])
         section_modality = section["Method"]
-        preferred_modality = modality_preferences.get(course_name) # Get preferred modality for the course from modality preferences
+        # Get preferred modality for the course from modality preferences
+        preferred_modality = modality_preferences.get(course_name)
 
         if preferred_modality and section_modality != preferred_modality:
             modality_score += 1
 
     return modality_score
 
+
 def _extract_meeting_days(section: Dict[str, Any]) -> List[str]:
     """
     Extract section's meeting days.
-    (Helper function for _score_max_sections_per_day, _score_days_on_campus, score_gaps, _score_consistency, and _extract_time_bounds.)
+    (Helper function for _score_max_sections_per_day, _score_days_on_campus,
+    score_gaps, _score_consistency, and _extract_time_bounds.)
 
     Args:
         section (Dict[str, Any]): A dictionary representing a course section.
@@ -53,9 +64,10 @@ def _extract_meeting_days(section: Dict[str, Any]) -> List[str]:
     Returns:
         List[str]: A list of meeting days, stripped of spaces.
     """
-    if section["Mtg_Days"]: # If section has meeting days, return the list of days
+    if section["Mtg_Days"]:  # If section has meeting days, return the list of days
         return [day.strip() for day in section["Mtg_Days"].split(',')]
-    return [] # If section does not have meeting days (e.g., ONLIN section), return an empty list
+    return []  # If section does not have meeting days (e.g., ONLIN), return an empty list
+
 
 @utils.time_function
 def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
@@ -68,20 +80,26 @@ def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
     Returns:
         int: The penalty score for exceeding the maximum number of sections per day.
     """
-    sections_per_day = {day: 0 for day in DAYS_OF_WEEK}  # Create and initialize a dictionary: keys are days of the week and values are number of sections that day
+    # Create and initialize a dictionary: keys are days of the week and values are number of sections that day
+    sections_per_day = {day: 0 for day in DAYS_OF_WEEK}
 
     try:
-        max_sections_per_day = config["preferred_max_sections_per_day"] # Get preferred max number of sections per day
-        penalty_per_excess_section = config["penalty_per_excess_section"]  # Get penalty value for each additional section
+        # Get preferred max number of sections per day
+        max_sections_per_day = config["preferred_max_sections_per_day"]
+        # Get penalty value for each additional section
+        penalty_per_excess_section = config["penalty_per_excess_section"]
     except KeyError:
-        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}")
 
     # Populate the dictionary
     for section in combination:  # For every section in a schedule
         meeting_days = _extract_meeting_days(section)  # Create a list of meeting days
-        for day in meeting_days:  # For each of the meeting days
-            if day in sections_per_day:  # If the day is one of the days in the week's dictionary (Mon-Sun)
-                sections_per_day[day] += 1  # Increase the section count for that day by one in the dictionary
+        # For each of the meeting days, if the day is in the dictionary,
+        # increase section count by one for that day
+        for day in meeting_days:
+            if day in sections_per_day:
+                sections_per_day[day] += 1
 
     excessive_sections_score = 0
     for day, section_count in sections_per_day.items():
@@ -91,6 +109,7 @@ def _score_max_sections_per_day(combination: List[Dict[str, Any]]) -> int:
             excessive_sections_score += excess_sections * penalty_per_excess_section
 
     return excessive_sections_score
+
 
 @utils.time_function
 def _score_days_on_campus(combination: List[Dict[str, Any]]) -> int:
@@ -104,23 +123,30 @@ def _score_days_on_campus(combination: List[Dict[str, Any]]) -> int:
         int: The penalty score for days on campus over the preferred number of days.
     """
     try:
-        preferred_num_days = config["preferred_num_days"] # Get preferred max number of sections per day
-        penalty_per_excess_day = config["penalty_per_excess_day"]  # Get penalty value for each additional section
+        # Get preferred max number of sections per day
+        preferred_num_days = config["preferred_num_days"]
+        # Get penalty value for each additional section
+        penalty_per_excess_day = config["penalty_per_excess_day"]
     except KeyError:
-        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}")
 
-    days_on_campus = set() # Create a set of days on campus and populate it with loop below
+    days_on_campus = set()  # Create a set of days on campus
     for section in combination:
         if section["Mtg_Days"]:
             meeting_days = _extract_meeting_days(section)
-            days_on_campus.update(meeting_days) # Add days of the week that have not been seen before to the set (sets cannot contain duplicates)
+            # Add days of the week that have not been seen before to the set
+            # (only new days are added because sets cannot contain duplicates)
+            days_on_campus.update(meeting_days)
 
     num_days = len(days_on_campus)
     excess_days = num_days - preferred_num_days
 
-    day_score = max(0, excess_days * penalty_per_excess_day)  # Calculate penalty for excess days
+    # Calculate penalty for excess days
+    day_score = max(0, excess_days * penalty_per_excess_day)
 
     return day_score
+
 
 def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, break_end: time) -> None:
     """
@@ -128,7 +154,7 @@ def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, 
     (Helper function of _score_gaps.)
 
     Args:
-        day_sections (List[Dict[str, Any]]): A list of sections for the day that represents the schedule for the day.
+        day_sections (List[Dict[str, Any]]): A list of sections that represents the schedule for the day.
         break_start (time): Start time of the mandatory break.
         break_end (time): End time of the mandatory break.
     """
@@ -143,13 +169,14 @@ def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, 
             "Mtg_Days": "Mandatory"
         })
 
+
 def _score_gaps_per_day(day_sections: List[Dict[str, Any]]) -> int:
     """
     Score a day in a schedule for the duration of gaps between classes.
     (Helper function of _score_gaps.)
 
     Args:
-        day_sections (List[Dict[str, Any]]): A list of sections for the day that represents the schedule for the day.
+        day_sections (List[Dict[str, Any]]): A list of sections that represents the schedule for the day.
 
     Returns:
         int: The day gap score.
@@ -159,14 +186,17 @@ def _score_gaps_per_day(day_sections: List[Dict[str, Any]]) -> int:
         See _scoring_v8 for that version of the function.  If revert, will need to rewrite the tests.
     """
     try:
-        max_allowed_gap = config["gap_weights"]["max_allowed_gap"] # Get preferred max number of sections per day
-        penalty_per_gap_hour = config["gap_weights"]["penalty_per_gap_hour"]  # Get penalty value for each additional section
+        # Get preferred max number of sections per day
+        max_allowed_gap = config["gap_weights"]["max_allowed_gap"]
+        # Get penalty value for each additional section
+        penalty_per_gap_hour = config["gap_weights"]["penalty_per_gap_hour"]
     except KeyError:
-        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}")
 
     day_gap_score = 0
 
-    for i in range(1, len(day_sections)): # Is this list sorted by starting time?
+    for i in range(1, len(day_sections)):  # Is this list sorted by starting time?
         prev_section = day_sections[i - 1]
         curr_section = day_sections[i]
 
@@ -180,7 +210,42 @@ def _score_gaps_per_day(day_sections: List[Dict[str, Any]]) -> int:
 
     return day_gap_score
 
-@utils.time_function
+
+def _group_and_sort_sections_by_day(combination: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    """
+    Group all sections that meet on the same day and then sort them by start time in ascending order.
+    (Helper function for _score_gaps and _score_location_change.)
+
+    Args:
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
+
+    Returns:
+        Dict[str, List[Dict[str, Any]]]: A dictionary where keys are days of the week
+        and values are lists of sections for that day, sorted by start time.
+    """
+    day_sections_map = {day: [] for day in DAYS_OF_WEEK}
+
+    for section in combination:
+        if section["STime"] and section["ETime"]:
+            start_time = parse_time(section["STime"])
+            end_time = parse_time(section["ETime"])
+            meeting_days = _extract_meeting_days(section)
+            if meeting_days:
+                for day in meeting_days:
+                    if day in day_sections_map:
+                        day_sections_map[day].append({
+                            "Name": section["Name"],
+                            "STime": start_time,
+                            "ETime": end_time,
+                            "Mtg_Days": day
+                        })
+
+    for day, day_sections in day_sections_map.items():
+        day_sections.sort(key=lambda section: section["STime"])
+
+    return day_sections_map
+
+
 def _score_gaps(combination: List[Dict[str, Any]]) -> int:
     """
     Score a schedule for the duration of gaps between classes.
@@ -192,42 +257,91 @@ def _score_gaps(combination: List[Dict[str, Any]]) -> int:
         int: The gap score.
     """
     try:
-        mandatory_break_start = config["gap_weights"]["mandatory_break_start"] # Get preferred max number of sections per day
-        mandatory_break_end = config["gap_weights"]["mandatory_break_end"]  # Get penalty value for each additional section
-    except KeyError:
-        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}") # Handle missing keys
+        mandatory_break_start = config["gap_weights"]["mandatory_break_start"]
+        mandatory_break_end = config["gap_weights"]["mandatory_break_end"]
+    except KeyError as e:
+        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}")
 
-    # Convert strings to datetime.time objects
     mandatory_break_start = parse_time(mandatory_break_start)
     mandatory_break_end = parse_time(mandatory_break_end)
 
     gap_score = 0
 
-    day_sections_map = {day: [] for day in DAYS_OF_WEEK} # Create a dictionary: keys are days of the week and values are lists of sections for that day
-
-    for section in combination:  # Loop through every section in a schedule
-        if section["STime"] and section["ETime"]: # If section has start and end times, parse them
-            start_time = parse_time(section["STime"])
-            end_time = parse_time(section["ETime"])
-            meeting_days = _extract_meeting_days(section) # If section has meeting days, turn them into a list
-            if meeting_days:  # Ignore sections without meeting days
-                for day in meeting_days: # Loop through each day in the meeting days list
-                    if day in day_sections_map:  # If it is a valid day (Mon-Sun)
-                        day_sections_map[day].append({ # Add section's info to the dictionary as a list (?)
-                            "Name": section["Name"],
-                            "STime": start_time,
-                            "ETime": end_time,
-                            "Mtg_Days": day
-                        })
+    day_sections_map = _group_and_sort_sections_by_day(combination)
 
     for day, day_sections in day_sections_map.items():
         if day in ['M', 'W', 'F']:
             _add_mandatory_break(day_sections, mandatory_break_start, mandatory_break_end)
-
-        day_sections.sort(key=lambda section: section["STime"]) # Sort sections by start time
-        gap_score += _score_gaps_per_day(day_sections) # Score gaps for the day and add them to the running total
+        gap_score += _score_gaps_per_day(day_sections)
 
     return gap_score
+
+
+def _score_location_change_by_day(day_sections: List[Dict[str, Any]]) -> int:
+    """
+    Score a day in a schedule for location changes between sections.
+
+    Args:
+        day_sections (List[Dict[str, Any]]): A list of sections that represents the schedule for the day.
+
+    Returns:
+        int: The day location change score.
+    """
+    try:
+        # Get the minimum time gap between sections that permits changing location
+        minimum_permissible_gap = config["location_change"]["minimum_permissible_gap"]
+        # Get the penalty for adjacent sections meeting in different locations
+        # if the gap between the sections is shorter than minimum gap (larger penalty)
+        unacceptable_gap_penalty = config["location_change"]["unacceptable_gap_penalty"]
+        # Get the penalty for adjacent sections meeting in different locations
+        # if the gap between the sections is longer than minimum gap (smaller penalty)
+        acceptable_gap_penalty = config["location_change"]["acceptable_gap_penalty"]
+    except KeyError as e:
+        # Handle missing keys
+        raise ConfigurationError(f"Missing critical configuration: {e.args[0]}")
+
+    location_change_score_day = 0
+
+    for i in range(1, len(day_sections)):
+        prev_section = day_sections[i - 1]
+        curr_section = day_sections[i]
+
+        # Skip sections without locations
+        if "Location" not in prev_section or "Location" not in curr_section:
+            continue
+
+        prev_end_time = prev_section["ETime"]
+        curr_start_time = curr_section["STime"]
+        gap_minutes = time_difference_in_minutes(curr_start_time, prev_end_time)
+
+        if prev_section["Location"] != curr_section["Location"]:
+            gap_hours = gap_minutes / 60
+            if gap_hours < minimum_permissible_gap:
+                location_change_score_day += unacceptable_gap_penalty
+            else:
+                location_change_score_day += acceptable_gap_penalty
+
+    return int(location_change_score_day)
+
+
+def _score_location_change(combination: List[Dict[str, Any]]) -> int:
+    """
+    Score the entire schedule for location changes between sections, across all days of the week.
+
+    Args:
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
+
+    Returns:
+        int: The total location change score.
+    """
+    day_sections_map = _group_and_sort_sections_by_day(combination)
+    location_change_score = 0
+
+    for day, day_sections in day_sections_map.items():
+        location_change_score += _score_location_change_by_day(day_sections)
+
+    return location_change_score
+
 
 def _average_time(times: List[time]) -> time:
     """
@@ -249,6 +363,7 @@ def _average_time(times: List[time]) -> time:
     avg_minute = avg_minutes % 60
     return time(avg_hour, avg_minute)
 
+
 def _extract_time_bounds(combination: List[Dict[str, Any]]) -> Dict[str, Tuple[time, time]]:
     """
     Extract the earliest section start time and latest section end time for each day.
@@ -258,7 +373,8 @@ def _extract_time_bounds(combination: List[Dict[str, Any]]) -> Dict[str, Tuple[t
         combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
 
     Returns:
-        Dict[str, Tuple[time, time]]: A dictionary with days as keys and tuples of earliest start time and latest end time as values.
+        Dict[str, Tuple[time, time]]: A dictionary with days as keys and tuples
+        of earliest start time and latest end time as values.
     """
     time_bounds_by_day = {day: (time.max, time.min) for day in DAYS_OF_WEEK}
     for section in combination:
@@ -272,7 +388,13 @@ def _extract_time_bounds(combination: List[Dict[str, Any]]) -> Dict[str, Tuple[t
                     new_earliest = min(current_earliest, section_start)
                     new_latest = max(current_latest, section_end)
                     time_bounds_by_day[day] = (new_earliest, new_latest)
-    return {day: bounds for day, bounds in time_bounds_by_day.items() if bounds != (time.max, time.min)}
+
+    return {
+        day: bounds
+        for day, bounds in time_bounds_by_day.items()
+        if bounds != (time.max, time.min)
+    }
+
 
 @utils.time_function
 def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
@@ -289,23 +411,43 @@ def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
     time_bounds_by_day = _extract_time_bounds(combination)
 
     try:
-        penalty_weight = config["consistency_penalty_weight"]  # Get consistency penalty weight
+        # Get consistency penalty weight
+        penalty_weight = config["consistency_penalty_weight"]
     except KeyError:
-        raise ConfigurationError("Missing critical configuration: 'consistency_penalty_weight'") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError("Missing critical configuration: 'consistency_penalty_weight'")
 
     if not time_bounds_by_day:
         return {"start_time_consistency_score": 0.0, "end_time_consistency_score": 0.0}
 
-    # Create two lists, one holding the start time for all days of the week and one, holding the end times
+    # Create two lists, one holding the start time for all days of the week
+    # and one, for holding the end times
     first_section_start_time = [bounds[0] for bounds in time_bounds_by_day.values()]
     last_section_end_time = [bounds[1] for bounds in time_bounds_by_day.values()]
+
     # Calculate the average start time and end time for the day over the course of the week
     avg_start_time = _average_time(first_section_start_time)
     avg_end_time = _average_time(last_section_end_time)
 
     # Calculate daily deviations from the average start time and end time, in hours
-    start_time_deviations = [(t.hour + t.minute / 60) - (avg_start_time.hour + avg_start_time.minute / 60) for t in first_section_start_time]
-    end_time_deviations = [(t.hour + t.minute / 60) - (avg_end_time.hour + avg_end_time.minute / 60) for t in last_section_end_time]
+    def time_to_hours(time):
+        """Helper function to convert time to hours.
+        Consider moving it to utils, since something similar is also used in plotting module."""
+        return time.hour + time.minute / 60
+
+    # Calculate start time deviations
+    avg_start_time_in_hours = time_to_hours(avg_start_time)
+    start_time_deviations = [
+        time_to_hours(t) - avg_start_time_in_hours
+        for t in first_section_start_time
+    ]
+
+    # Calculate end time deviations
+    avg_end_time_in_hours = time_to_hours(avg_end_time)
+    end_time_deviations = [
+        time_to_hours(t) - avg_end_time_in_hours
+        for t in last_section_end_time
+    ]
 
     # Calculate the sum of the absolute values of the deviations over the course of the week
     total_start_time_deviation = sum(abs(dev) for dev in start_time_deviations)
@@ -319,7 +461,11 @@ def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
     start_time_consistency_score = round(start_time_consistency_score, 1)
     end_time_consistency_score = round(end_time_consistency_score, 1)
 
-    return {"start_time_consistency_score": start_time_consistency_score, "end_time_consistency_score": end_time_consistency_score}
+    return {
+        "start_time_consistency_score": start_time_consistency_score,
+        "end_time_consistency_score": end_time_consistency_score
+    }
+
 
 @utils.time_function
 def _score_availability(combination: List[Dict[str, Any]], availability: Dict[str, List[str]]) -> float:
@@ -334,12 +480,15 @@ def _score_availability(combination: List[Dict[str, Any]], availability: Dict[st
         float: The total availability penalty score.
     """
     try:
-        penalty_per_hour = config["availability"]["penalty_per_hour"]  # Get availability penalty weight
+        # Get availability penalty weight
+        penalty_per_hour = config["availability_penalty_per_hour"]
     except KeyError:
-        raise ConfigurationError("Missing critical configuration: 'penalty_per_hour'") # Handle missing keys
+        # Handle missing keys
+        raise ConfigurationError("Missing critical configuration: 'availability_penalty_per_hour'")
 
     total_penalty = 0.0
-    time_bounds_by_day = _extract_time_bounds(combination) # Returns dictionary:  keys are days and values are tuples of end time and start time
+    # Returns dictionary:  keys are days and values are tuples of end time and start time
+    time_bounds_by_day = _extract_time_bounds(combination)
 
     for day, (first_section_start, last_section_end) in time_bounds_by_day.items():
         if day in availability and len(availability[day]) == 1:
@@ -356,17 +505,47 @@ def _score_availability(combination: List[Dict[str, Any]], availability: Dict[st
 
         elif day not in availability or len(availability[day]) == 0:
             # No availability for this day: entire duration is out of bounds
-            out_of_bounds_minutes = time_difference_in_minutes(last_section_end, first_section_start) # _extract_time_bounds function takes care of multiple sections per day
+            # (_extract_time_bounds function takes care of multiple sections per day)
+            out_of_bounds_minutes = time_difference_in_minutes(last_section_end, first_section_start)
             total_penalty += (out_of_bounds_minutes / 60) * penalty_per_hour
 
     total_penalty = round(total_penalty, 1)
     return total_penalty
 
+
+def _score_enrollment_balancing(combination: List[Dict[str, Any]]) -> int:
+    """
+    Calculate the enrollment balancing score for a schedule combination.
+
+    Args:
+        combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
+
+    Returns:
+        int: The enrollment balancing score.
+    """
+    try:
+        # Get the penalty rate from config
+        penalty_rate = config["enrollment_balancing_penalty_rate"]
+    except KeyError:
+         # Handle missing keys
+        raise ConfigurationError("Missing critical configuration: 'enrollment_balancing_penalty_rate'")
+
+    sum_fraction_full_deviation = sum(
+        section.get('Fraction_Full_Deviation', 0)
+        for section in combination
+    )
+    enrollment_balancing_score = sum_fraction_full_deviation * penalty_rate
+    enrollment_balancing_score = round(enrollment_balancing_score, 1)
+
+    return enrollment_balancing_score
+
+
 @utils.time_function
 def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
     """
-    Score a schedule for a combination of scores, including modality, days, gaps, and max sections per day.
-    MODIFY THIS FUNCTION whenever a new score is added. Add new score to combined_score calculation and return dictionary.
+    Score a schedule for a combination of scores, including modality, days, gaps, etc.
+    MODIFY THIS FUNCTION whenever a new score is added:
+    add new score to combined_score calculation and return dictionary.
 
     Args:
         combination (List[Dict[str, Any]]): A list of course sections that represents a schedule.
@@ -380,6 +559,8 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
     max_sections_score = _score_max_sections_per_day(combination)
     consistency_scores = _score_consistency(combination)
     availability_score = _score_availability(combination, config["user_availability"])
+    enrollment_balancing_score = _score_enrollment_balancing(combination)
+    location_change_score = _score_location_change(combination)
 
     combined_score = (
         config["weights"]["days"] * days_score +
@@ -388,7 +569,10 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
         config["weights"].get("sections_per_day", 1) * max_sections_score +
         config["weights"].get("consistency_start_time", 1) * consistency_scores["start_time_consistency_score"] +
         config["weights"].get("consistency_end_time", 1) * consistency_scores["end_time_consistency_score"] +
-        config["weights"].get("availability", 1) * availability_score
+        config["weights"].get("availability", 1) * availability_score +
+        config["weights"].get("enrollment_balancing", 1) * enrollment_balancing_score +
+        config["weights"].get("location_change", 1) * location_change_score
+        # Add new scores and their weights here, after a '+'
     )
 
     combined_score = round(combined_score, 1)
@@ -401,10 +585,17 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
         "max_sections_score": max_sections_score,
         "start_time_consistency_score": consistency_scores["start_time_consistency_score"],
         "end_time_consistency_score": consistency_scores["end_time_consistency_score"],
-        "availability_score": availability_score
+        "availability_score": availability_score,
+        "enrollment_balancing_score": enrollment_balancing_score,
+        "location_change_score": location_change_score,
+        # Add new scores here
     }
 
-def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[List[Dict[str, Any]], Dict[str, int]]]:
+
+@utils.time_function
+def score_combinations(
+    combinations: List[List[Dict[str, Any]]]
+) -> List[Tuple[List[Dict[str, Any]], Dict[str, int]]]:
     '''
     Score a list of schedule combinations.
 
@@ -412,7 +603,8 @@ def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[L
         combinations (List[List[Dict[str, Any]]]): A list of schedule combinations.
 
     Returns:
-        List[Tuple[List[Dict[str, Any]], Dict[str, int]]]: A list of tuples where each tuple contains a schedule combination and its scores.
+        List[Tuple[List[Dict[str, Any]], Dict[str, int]]]: A list of tuples
+        where each tuple contains a schedule combination and its scores.
     '''
     scored_combinations = []
     for combination in combinations:
@@ -427,5 +619,7 @@ def score_combinations(combinations: List[List[Dict[str, Any]]]) -> List[Tuple[L
                 errors['score_combinations'].add(error_message)
             logger.error(f"Error scoring combination: {e}")
 
-    scored_combinations.sort(key=lambda x: x[1]["combined_score"])  # Sort by the combined score
+    # Sort by the combined score
+    scored_combinations.sort(key=lambda x: x[1]["combined_score"])
+
     return scored_combinations
