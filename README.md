@@ -38,8 +38,8 @@ scheduler_modularized/
 
 1. Clone the repository.
    ```sh
-   git clone https://github.com/o-korol/scheduler_modularized.git
-   cd scheduler_modularized
+   git clone https://github.com/o-korol/scheduler_modular.git
+   cd scheduler_modular
    ```
 
 2. Install the required packages.
