@@ -8,15 +8,17 @@ from typing import List, Dict, Tuple, Any
 from module.config import config
 from module import utils
 from module.utils import (parse_time, parse_time_range, time_difference_in_minutes,
-                          errors, logger, ConfigurationError)
-
+                          errors, logger, ConfigurationError
+)
 
 # Constants
 DAYS_OF_WEEK = ['M', 'T', 'W', 'TH', 'F', 'S', 'SU']
 
 
 @utils.time_function
-def _score_modality(combination: List[Dict[str, Any]]) -> int:
+def _score_modality(combination: List[Dict[str, Any]],
+                    modality_preferences: Dict[str, str]
+) -> int:
     """
     Score a schedule for its ability to meet student's modality preferences.
 
@@ -30,13 +32,6 @@ def _score_modality(combination: List[Dict[str, Any]]) -> int:
         this function will need to be modified to handle "no preference" option,
         treating it just as if the modality preference are met condition.
     """
-    try:
-        # Get student's modality preferences from config
-        modality_preferences = config["modality_preferences"]
-    except KeyError:
-        # Handle missing keys
-        raise ConfigurationError("Missing critical configuration: 'modality_preferences'")
-
     modality_score = 0
 
     for section in combination:
@@ -148,7 +143,10 @@ def _score_days_on_campus(combination: List[Dict[str, Any]]) -> int:
     return day_score
 
 
-def _add_mandatory_break(day_sections: List[Dict[str, Any]], break_start: time, break_end: time) -> None:
+def _add_mandatory_break(day_sections: List[Dict[str, Any]],
+                         break_start: time,
+                         break_end: time
+) -> None:
     """
     Add a mandatory break (College Hour) on MWF, but only if there are sections schedules for before and after.
     (Helper function of _score_gaps.)
@@ -466,9 +464,10 @@ def _score_consistency(combination: List[Dict[str, Any]]) -> Dict[str, float]:
         "end_time_consistency_score": end_time_consistency_score
     }
 
-
 @utils.time_function
-def _score_availability(combination: List[Dict[str, Any]], availability: Dict[str, List[str]]) -> float:
+def _score_availability(combination: List[Dict[str, Any]],
+                        availability: Dict[str, List[str]]
+) -> float:
     """
     Calculate the availability score for a given schedule.
 
@@ -512,7 +511,6 @@ def _score_availability(combination: List[Dict[str, Any]], availability: Dict[st
     total_penalty = round(total_penalty, 1)
     return total_penalty
 
-
 def _score_enrollment_balancing(combination: List[Dict[str, Any]]) -> int:
     """
     Calculate the enrollment balancing score for a schedule combination.
@@ -541,7 +539,10 @@ def _score_enrollment_balancing(combination: List[Dict[str, Any]]) -> int:
 
 
 @utils.time_function
-def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
+def _combined_score(combination: List[Dict[str, Any]],
+                    user_availability: Dict[str, List[str]],
+                    modality_preferences: Dict[str, str]
+) -> Dict[str, int]:
     """
     Score a schedule for a combination of scores, including modality, days, gaps, etc.
     MODIFY THIS FUNCTION whenever a new score is added:
@@ -553,19 +554,19 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
     Returns:
         Dict[str, int]: A dictionary of the score names and their values.
     """
-    modality_score = _score_modality(combination)
+    modality_score = _score_modality(combination, modality_preferences) # Testing:  adding modality_preferences
     days_score = _score_days_on_campus(combination)
     gap_score = _score_gaps(combination)
     max_sections_score = _score_max_sections_per_day(combination)
     consistency_scores = _score_consistency(combination)
-    availability_score = _score_availability(combination, config["user_availability"])
+    availability_score = _score_availability(combination, user_availability) # Testing:  swapped config["user_availabity"] out for user_availability
     enrollment_balancing_score = _score_enrollment_balancing(combination)
     location_change_score = _score_location_change(combination)
 
     combined_score = (
-        config["weights"]["days"] * days_score +
-        config["weights"]["gaps"] * gap_score +
-        config["weights"]["modality"] * modality_score +
+        config["weights"].get("days", 1) * days_score +
+        config["weights"].get("gaps", 1) * gap_score +
+        config["weights"].get("modality", 1) * modality_score +
         config["weights"].get("sections_per_day", 1) * max_sections_score +
         config["weights"].get("consistency_start_time", 1) * consistency_scores["start_time_consistency_score"] +
         config["weights"].get("consistency_end_time", 1) * consistency_scores["end_time_consistency_score"] +
@@ -594,7 +595,9 @@ def _combined_score(combination: List[Dict[str, Any]]) -> Dict[str, int]:
 
 @utils.time_function
 def score_combinations(
-    combinations: List[List[Dict[str, Any]]]
+    combinations: List[List[Dict[str, Any]]],
+    user_availability: Dict[str, List[str]],
+    modality_preferences: Dict[str, str]
 ) -> List[Tuple[List[Dict[str, Any]], Dict[str, int]]]:
     '''
     Score a list of schedule combinations.
@@ -609,7 +612,7 @@ def score_combinations(
     scored_combinations = []
     for combination in combinations:
         try:
-            scores = _combined_score(combination)
+            scores = _combined_score(combination, user_availability, modality_preferences) # Testing:  added user_availability & modality_preferences
             scored_combinations.append((combination, scores))
         except Exception as e:
             error_message = str(e)
