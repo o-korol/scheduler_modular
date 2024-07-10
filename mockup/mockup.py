@@ -3,7 +3,7 @@ def mock_selected_courses():
     Mock function to simulate user-selected courses.
     """
     selected_courses = ['BIO-151', 'MAT-143', 'ENG-103', 'PSY-103']
-    # selected_courses = ['MAT-143']
+    # selected_courses = ['MAT-143']  # Single course
     return selected_courses
 
 def mock_modality_preferences():
@@ -20,6 +20,7 @@ def mock_modality_preferences():
     }
 
     """
+    # Single course
     modality_preferences = {
         'MAT-143': "LEC",
     }
@@ -37,7 +38,7 @@ def mock_user_availability():
         "W": ["7:00 AM - 11:00 PM"],
         "TH": ["7:00 AM - 11:00 PM"],
         "F": ["7:00 AM - 11:00 PM"],
-        "S": ["11:00 AM - 10:00 PM"],
+        "S": ["7:00 AM - 11:00 PM"],
         "SU": []
     }
     return availability
