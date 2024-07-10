@@ -1,10 +1,15 @@
 import pandas as pd
+from typing import List, Dict, Any, Tuple
 
 from module import utils
 
 
 @utils.time_function
-def retrieve_section_info(cursor, selected_courses, section_cache):
+def retrieve_section_info(cursor: Any,
+                          selected_courses: List[str],
+                          section_cache: Dict[str, List[Any]]
+) -> Tuple[pd.DataFrame, List[str]]:
+
     """
     Retrieve section data from the database for the given selected courses.
 
@@ -51,7 +56,7 @@ def retrieve_section_info(cursor, selected_courses, section_cache):
 
 
 @utils.time_function
-def group_sections(df):
+def group_sections(df: pd.DataFrame) -> pd.DataFrame:
     """
     Group sections of the same course if they meet at the same time, on the same days and dates,
     in the same location, and have the same modality.
@@ -93,7 +98,7 @@ def group_sections(df):
 
 
 @utils.time_function
-def sort_sections_by_enrollment(df):
+def sort_sections_by_enrollment(df: pd.DataFrame) -> pd.DataFrame:
     """
     Sort sections by Course_Name first, then by Fraction_Full in ascending order.
     Used to prioritize sections with lower enrollment for section load balancing.
@@ -109,7 +114,7 @@ def sort_sections_by_enrollment(df):
 
 
 @utils.time_function
-def sort_courses_by_variance(df):
+def sort_courses_by_variance(df: pd.DataFrame) -> pd.DataFrame:
     """
     Sort courses by the variance of their section enrollments.
     Originally planned to use it for enrollment balancing, but took a different path.
@@ -139,7 +144,7 @@ def sort_courses_by_variance(df):
 
 
 @utils.time_function
-def sort_courses_by_section_count(df):
+def sort_courses_by_section_count(df: pd.DataFrame) -> pd.DataFrame:
     """
     Sort courses by the number of sections they have in ascending order.
     Considered using for optimizing time conflict check, but it did not make practical difference.
