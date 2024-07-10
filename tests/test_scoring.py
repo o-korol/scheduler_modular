@@ -30,51 +30,46 @@ def combination():
         {"Name": "MAT-143-101", "Method": "LEC"},
         {"Name": "PSY-103-101", "Method": "ONLIN"},
     ]
-# Mock configuration for testing
+
+# Mock modality preferences for testing
 @pytest.fixture
-def mock_config_mod():
+def test_modality_preferences():
     return {
-        "modality_preferences": {  # Change values with caution
-            "MAT-143": "LEC",
-            "PSY-103": "ONLIN"
-        }
+        "MAT-143": "LEC",
+        "PSY-103": "ONLIN"
     }
 
-def test_score_modality_empty_combination(mock_config_mod):
+def test_score_modality_empty_combination(test_modality_preferences):
     """Test _score_modality with an empty combination list."""
-    config.update(mock_config_mod)
     empty_combination = []
-    score = _score_modality(empty_combination)
+    score = _score_modality(empty_combination, test_modality_preferences)
     assert score == 0, "Score should be 0 for empty combination"
 
-def test_score_modality_preferred_modality_match(mock_config_mod):
+def test_score_modality_preferred_modality_match(test_modality_preferences):
     """Test _score_modality when all sections match the preferred modality."""
-    config.update(mock_config_mod)
     preferred_combination = [
         {"Name": "MAT-143-101", "Method": "LEC"},
         {"Name": "PSY-103-101", "Method": "ONLIN"},
     ]
-    score = _score_modality(preferred_combination)
+    score = _score_modality(preferred_combination, test_modality_preferences)
     assert score == 0, "Score should be 0 when all sections match the preferred modality"
 
-def test_score_modality_preferred_modality_mismatch(mock_config_mod):
+def test_score_modality_preferred_modality_mismatch(test_modality_preferences):
     """Test _score_modality when none sections match the preferred modality."""
-    config.update(mock_config_mod)
     mismatched_combination = [
         {"Name": "MAT-143-101", "Method": "HYB"},
         {"Name": "PSY-103-101", "Method": "LEC"},
     ]
-    score = _score_modality(mismatched_combination)
+    score = _score_modality(mismatched_combination, test_modality_preferences)
     assert score == 2, "Score should be 2 for two mismatches in preferred modality"
 
-def test_score_modality_no_modality_preference(mock_config_mod):
+def test_score_modality_no_modality_preference(test_modality_preferences):
     """Test _score_modality when there is no preference for a course."""
-    config.update(mock_config_mod)
     no_preference_combination = [
         {"Name": "HIS-101-101", "Method": "LEC"},
         {"Name": "HIS-101-102", "Method": "ONLIN"},
     ]
-    score = _score_modality(no_preference_combination)
+    score = _score_modality(no_preference_combination, test_modality_preferences)
     assert score == 0, "Score should be 0 when there is no modality preference for a course"
 
 
@@ -627,7 +622,7 @@ def mock_config_availability():
 
 # Mock availability data
 @pytest.fixture
-def mock_availability():
+def test_availability():
     return {
         "M": ["11:00 AM - 10:00 PM"],
         "T": ["11:00 AM - 10:00 PM"],
@@ -638,6 +633,89 @@ def mock_availability():
         "SU": []
     }
 
+def test_score_availability_inside_bounds(mock_config_availability, test_availability):
+    """Test _score_availability with sections within availability."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "12:00 PM", "ETime": "1:00 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.0
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when sections are within availability"
+
+def test_score_availability_at_start_bound(mock_config_availability, test_availability):
+    """Test _score_availability with sections starting exactly at availability start."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "11:00 AM", "ETime": "12:00 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.0
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when sections start exactly at availability start"
+
+def test_score_availability_at_end_bound(mock_config_availability, test_availability):
+    """Test _score_availability with sections ending exactly at availability end."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "09:00 PM", "ETime": "10:00 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.0
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when sections end exactly at availability end"
+
+def test_score_availability_15_min_outside_start(mock_config_availability, test_availability):
+    """Test _score_availability with sections starting 15 minutes before availability."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "10:45 AM", "ETime": "12:00 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.2  # 15 minutes / 60 minutes * 1 penalty point per hour = 0.25, which rounds to 0.2 (?)
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when sections start 15 minutes before availability"
+
+def test_score_availability_15_min_outside_end(mock_config_availability, test_availability):
+    """Test _score_availability with sections ending 15 minutes after availability."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "09:00 PM", "ETime": "10:15 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.2  # 15 minutes / 60 minutes * 1 penalty point per hour = 0.25, which rounds to 0.2 (?)
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when sections end 15 minutes after availability"
+
+def test_score_availability_two_classes_outside_bounds(mock_config_availability, test_availability):
+    """Test _score_availability with two classes: one starts 15 minutes before the start of availability and one ends 15 minutes after the end of availability."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "10:45 AM", "ETime": "12:00 PM", "Mtg_Days": "M"},
+        {"Name": "Class 2", "STime": "09:00 PM", "ETime": "10:15 PM", "Mtg_Days": "M"},
+    ]
+    expected_score = 0.5  # 0.25 for the start, 0.25 for the end.
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when one class starts 15 minutes before and one ends 15 minutes after availability"
+
+def test_score_availability_multiple_days_outside_bounds(mock_config_availability, test_availability):
+    """Test _score_availability with a single class starting 15 minutes before availability but meeting on multiple days (M, W)."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "10:45 AM", "ETime": "12:00 PM", "Mtg_Days": "M, W"},
+    ]
+    expected_score = 0.5  # 0.25 for each day (M, W)
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when a class starts 15 minutes before availability on multiple days"
+
+def test_score_availability_no_availability(mock_config_availability, test_availability):
+    """Test _score_availability with a class that meets on SU when availability is an empty list."""
+    config.update(mock_config_availability)
+    combination = [
+        {"Name": "Class 1", "STime": "10:00 AM", "ETime": "12:00 PM", "Mtg_Days": "SU"},
+        {"Name": "Class 2", "STime": "1:00 PM", "ETime": "2:00 PM", "Mtg_Days": "SU"}
+    ]
+    expected_score = 4.0  # Entire duration is out of bounds (10 am to 2 pm or 4 hours), 1 penalty per hour
+    score = _score_availability(combination, test_availability)
+    assert score == expected_score, f"Score should be {expected_score} when a class meets on SU with no availability"
+
+'''
 def test_score_availability_inside_bounds(mock_config_availability, mock_availability):
     """Test _score_availability with sections within availability."""
     config.update(mock_config_availability)
@@ -719,6 +797,7 @@ def test_score_availability_no_availability(mock_config_availability, mock_avail
     expected_score = 4.0  # Entire duration is out of bounds (4 hours), 1 penalty per hour
     score = _score_availability(combination, mock_availability)
     assert score == expected_score, f"Score should be {expected_score} when a class meets on SU with no availability"
+'''
 
 """Testing _score_enrollment_balancing function """
 @pytest.fixture
@@ -815,45 +894,58 @@ def test_combined_score_all_ones_dynamic():
 
     assert calculated_scores == expected_scores, f"Scores should be {expected_scores} for individual penalties of 1"
 
-# Testing _score_combinations function
-# Ensure user_availability is in the config
-config["user_availability"] = {
-    "M": ["11:00 AM - 10:00 PM"],
-    "T": ["11:00 AM - 10:00 PM"],
-    "W": ["11:00 AM - 10:00 PM"],
-    "TH": ["11:00 AM - 10:00 PM"],
-    "F": ["11:00 AM - 10:00 PM"],
-    "S": ["11:00 AM - 10:00 PM"],
-    "SU": []  # No availability on Sunday
-}
+"""Testing _score_combinations function"""
+# Define the necessary fixtures
+@pytest.fixture
+def user_availability():
+    return {
+        "M": ["11:00 AM - 10:00 PM"],
+        "T": ["11:00 AM - 10:00 PM"],
+        "W": ["11:00 AM - 10:00 PM"],
+        "TH": ["11:00 AM - 10:00 PM"],
+        "F": ["11:00 AM - 10:00 PM"],
+        "S": ["11:00 AM - 10:00 PM"],
+        "SU": []  # No availability on Sunday
+    }
 
-def test_score_combinations_empty():
+@pytest.fixture
+def modality_preferences():
+    return {
+        "MAT-143": "LEC",
+        "PSY-103": "ONLIN"
+    }
+
+@pytest.mark.usefixtures("user_availability", "modality_preferences")
+def test_score_combinations_empty(user_availability, modality_preferences):
     """Test score_combinations with an empty list of combinations."""
     combinations = []
-    scored_combinations = score_combinations(combinations)
+    scored_combinations = score_combinations(combinations, user_availability, modality_preferences)
     assert scored_combinations == [], "Should return an empty list"
 
-def test_score_combinations_single():
+@pytest.mark.usefixtures("user_availability", "modality_preferences")
+def test_score_combinations_single(user_availability, modality_preferences):
     """Test score_combinations with a single schedule combination."""
     combinations = [
-        [{"Name": "MAT-143-01", "STime": "08:00 AM", "ETime": "09:00 AM", "Mtg_Days": "M", "Method": "LEC"}]
+        [{"Name": "MAT-143-101", "STime": "08:00 AM", "ETime": "09:00 AM", "Mtg_Days": "M", "Method": "LEC"}]
     ]
-    scored_combinations = score_combinations(combinations)
+    scored_combinations = score_combinations(combinations, user_availability, modality_preferences)
     assert len(scored_combinations) == 1, "Should return one scored combination"
     assert "combined_score" in scored_combinations[0][1], "Should contain combined score"
     assert scored_combinations[0][1]["combined_score"] is not None, "Combined score should not be None"
 
-def test_score_combinations_multiple():
+@pytest.mark.usefixtures("user_availability", "modality_preferences")
+def test_score_combinations_multiple(user_availability, modality_preferences):
     """Test score_combinations with multiple combinations."""
     combinations = [
-        [{"Name": "MAT-143-01", "STime": "08:00 AM", "ETime": "09:00 AM", "Mtg_Days": "M", "Method": "LEC"}],
-        [{"Name": "PSY-103-01", "STime": "09:00 AM", "ETime": "10:00 AM", "Mtg_Days": "T", "Method": "ONLIN"}]
+        [{"Name": "MAT-143-101", "STime": "08:00 AM", "ETime": "09:00 AM", "Mtg_Days": "M", "Method": "LEC"}],
+        [{"Name": "PSY-103-101", "STime": "09:00 AM", "ETime": "10:00 AM", "Mtg_Days": "T", "Method": "ONLIN"}]
     ]
-    scored_combinations = score_combinations(combinations)
+    scored_combinations = score_combinations(combinations, user_availability, modality_preferences)
     assert len(scored_combinations) == 2, "Should return two scored combinations"
     assert scored_combinations[0][1]["combined_score"] <= scored_combinations[1][1]["combined_score"], "Should be sorted by combined score"
 
-def test_score_combinations_correct_sorting():
+@pytest.mark.usefixtures("user_availability", "modality_preferences")
+def test_score_combinations_correct_sorting(user_availability, modality_preferences):
     """Test score_combinations to ensure correct sorting by combined score."""
     combinations = [
         [{"Name": "Combination 1", "Method": "LEC", "Mtg_Days": "M", "STime": "08:00 AM", "ETime": "09:00 AM"}],
@@ -865,7 +957,7 @@ def test_score_combinations_correct_sorting():
     scores = (3, 2, 1)
 
     # Mocking the _combined_score function to return fixed scores for sorting test
-    def mock_combined_score(combination):
+    def mock_combined_score(combination, user_availability, modality_preferences):
         index = combinations.index(combination)
         return {"combined_score": scores[index]}
 
@@ -876,7 +968,7 @@ def test_score_combinations_correct_sorting():
     global errors
     errors = {}
 
-    scored_combinations = score_combinations(combinations)
+    scored_combinations = score_combinations(combinations, user_availability, modality_preferences)
 
     globals()['_combined_score'] = original_combined_score  # Restore the original function
 
