@@ -8,31 +8,33 @@ import os
 import sqlite3
 import time
 
-from module.database_operations import retrieve_section_info, group_sections, sort_sections_by_enrollment, sort_courses_by_variance, sort_courses_by_section_count
+from module.database_operations import (retrieve_section_info, group_sections,
+                                        sort_sections_by_enrollment, sort_courses_by_variance,
+                                        sort_courses_by_section_count
+)
 from module.scheduling_logic import generate_combinations_with_coreqs
 from module.scoring import score_combinations
 from module.plotting import plot_schedules
 from module.config import config, ACTIVATE_SORT_BY_ENROLLMENT, ACTIVATE_SORT_BY_VARIANCE
 from module.utils import logger, print_summary, print_execution_summary, print_error_summary
-from mockup.mockup import mock_selected_courses, mock_modality_preferences, mock_user_availability # Mock user availability is not patched in yet
+from mockup.mockup import mock_selected_courses, mock_modality_preferences, mock_user_availability
 
 def main():
-    start_time = time.time()  # Start timing (used to time the main because time decorator function does not seem to work with main)
+    # Start timing (time decorator function does not seem to work with main)
+    start_time = time.time()
 
     try:
         conn = sqlite3.connect('assets/schedule.db')
         cursor = conn.cursor()
 
-        # Mock up selected courses (get selected courses from mockup file)
+        # Mock selected courses (get them from mockup file)
         selected_courses = mock_selected_courses()
 
-        # Mock modality preferences and update config
+        # Mock modality preferences
         modality_preferences = mock_modality_preferences()
-        config["modality_preferences"] = modality_preferences  # Update config with modality preferences
 
-        # Mock user availability and update config # Testing
+        # Mock user availability
         user_availability = mock_user_availability()
-        config["user_availability"] = user_availability  # Update config with user availability
 
         section_cache = {}
 
@@ -61,7 +63,7 @@ def main():
         # logger.info("Schedule combinations generated successfully")
 
         # logger.info("Scoring schedule combinations...")
-        scored_combinations = score_combinations(combinations)
+        scored_combinations = score_combinations(combinations, user_availability, modality_preferences) # Added user_availability & modality_preferences
         # logger.info("Schedule combinations scored successfully")
 
         # logger.info("Printing scored schedule combinations...")
