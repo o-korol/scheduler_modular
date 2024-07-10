@@ -1,12 +1,13 @@
 import matplotlib.patches as patches
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from typing import List, Dict, Any, Tuple
 
 from module.scoring import _extract_meeting_days
 from module.utils import time_function, parse_time
 
 
-def split_text(text, max_width):
+def split_text(text: str, max_width: int) -> str:
     """
     Split longer text to fit inside a course patch on the plot.
 
@@ -30,7 +31,7 @@ def split_text(text, max_width):
     return '\n'.join(lines)
 
 
-def setup_axes(ax, days):
+def setup_axes(ax: plt.Axes, days: List[str]) -> None:
     """
     Set up the axes, ticks, labels, and gridlines for the plot.
 
@@ -56,7 +57,10 @@ def setup_axes(ax, days):
 
 
 @time_function
-def plot_schedule(schedule, option_number, scores):
+def plot_schedule(schedule: List[Dict[str, Any]],
+                  option_number: int,
+                  scores: Dict[str, Any]
+) -> plt.Figure:
     """
     Plot a schedule in a "weekly planner page" format.
     Sections with no meeting time are plotted separately, below the weekly grid.
@@ -189,7 +193,7 @@ def plot_schedule(schedule, option_number, scores):
 
 
 @time_function
-def plot_schedules(combinations):
+def plot_schedules(combinations: List[Tuple[List[Dict[str, Any]], Dict[str, Any]]]) -> None:
     """
     Plot top-N schedules & save them to a PDF file.
 
