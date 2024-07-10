@@ -1,5 +1,3 @@
-from mockup.mockup import mock_modality_preferences
-
 # Set to True to sort courses by variance in enrollment (to favor sections with lower enrollment)
 ACTIVATE_SORT_BY_VARIANCE = False
 # Set to True to sort sections of the same course by enrollment (to favor sections with lower enrollment)
@@ -30,7 +28,6 @@ config = {
     },
     "preferred_max_sections_per_day": 3,
     "penalty_per_excess_section": 1,  # Penalty for each excessive section
-    "modality_preferences": mock_modality_preferences(),  # This will need move out eventually
     "consistency_penalty_weight": 1,  # Penalty weight for consistency deviations
     "availability_penalty_per_hour": 1,  # Penalty for every hour out of bounds
     "enrollment_balancing_penalty_rate": 1,  # Example penalty rate for enrollment balancing
